@@ -76,10 +76,18 @@ const stoneFormSchema = z.object({
   stoneType: z.string().min(1, "Taş türü gerekli"),
   caratSize: z.string().min(1, "Karat boyutu gerekli"),
   quantity: z.string().min(1, "Adet gerekli"),
+  shape: z.string().optional(),
+  color: z.string().optional(),
+  clarity: z.string().optional(),
+  discountPercent: z.string().optional(),
 });
 
 type AnalysisFormValues = z.infer<typeof analysisFormSchema>;
 type StoneFormValues = z.infer<typeof stoneFormSchema>;
+
+const DIAMOND_SHAPES = ["Round", "Princess", "Cushion", "Oval", "Emerald", "Pear", "Marquise", "Radiant", "Asscher", "Heart"];
+const DIAMOND_COLORS = ["D", "E", "F", "G", "H", "I", "J", "K", "L", "M"];
+const DIAMOND_CLARITIES = ["IF", "VVS1", "VVS2", "VS1", "VS2", "SI1", "SI2", "I1", "I2", "I3"];
 
 interface StoneEntry {
   stoneType: string;
@@ -88,6 +96,11 @@ interface StoneEntry {
   pricePerCarat?: number;
   settingCost?: number;
   totalStoneCost?: number;
+  shape?: string;
+  color?: string;
+  clarity?: string;
+  rapaportPrice?: number;
+  discountPercent?: number;
 }
 
 export default function AnalysisPage() {
@@ -138,8 +151,25 @@ export default function AnalysisPage() {
       stoneType: "",
       caratSize: "",
       quantity: "1",
+      shape: "",
+      color: "",
+      clarity: "",
+      discountPercent: "",
     },
   });
+
+  const lookupRapaportPrice = async (shape: string, carat: number, color: string, clarity: string): Promise<number | null> => {
+    try {
+      const response = await fetch(`/api/rapaport-prices/lookup?shape=${encodeURIComponent(shape)}&carat=${carat}&color=${encodeURIComponent(color)}&clarity=${encodeURIComponent(clarity)}`);
+      if (response.ok) {
+        const data = await response.json();
+        return data?.pricePerCarat ? parseFloat(data.pricePerCarat) : null;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
 
   const createMutation = useMutation({
     mutationFn: (data: { record: AnalysisFormValues; stones: StoneEntry[] }) => 
@@ -195,16 +225,37 @@ export default function AnalysisPage() {
     }
   };
 
-  const addStone = (data: StoneFormValues) => {
+  const addStone = async (data: StoneFormValues) => {
     const gemstone = gemstonePrices?.find(g => g.stoneType === data.stoneType);
     const caratSize = parseFloat(data.caratSize);
     const settingRate = stoneRates?.find(r => 
       caratSize >= parseFloat(r.minCarat) && caratSize <= parseFloat(r.maxCarat)
     );
 
-    const pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
     const settingCost = settingRate ? parseFloat(settingRate.pricePerStone) * parseInt(data.quantity) : 0;
-    const totalStoneCost = (pricePerCarat * caratSize * parseInt(data.quantity)) + settingCost;
+    const discountPercent = data.discountPercent ? parseFloat(data.discountPercent) : 0;
+    
+    let pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
+    let rapaportPrice: number | undefined = undefined;
+    let totalStoneCost = 0;
+
+    const isDiamond = data.stoneType.toLowerCase().includes("elmas") || 
+                      data.stoneType.toLowerCase().includes("diamond") ||
+                      data.stoneType.toLowerCase().includes("pırlanta");
+
+    if (isDiamond && data.shape && data.color && data.clarity) {
+      const rapPrice = await lookupRapaportPrice(data.shape, caratSize, data.color, data.clarity);
+      if (rapPrice) {
+        rapaportPrice = rapPrice;
+        const discountedPrice = rapPrice * (1 - discountPercent / 100);
+        totalStoneCost = (discountedPrice * caratSize * parseInt(data.quantity)) + settingCost;
+      } else {
+        totalStoneCost = (pricePerCarat * caratSize * parseInt(data.quantity)) + settingCost;
+        toast({ title: "Rapaport fiyatı bulunamadı, standart fiyat kullanıldı", variant: "default" });
+      }
+    } else {
+      totalStoneCost = (pricePerCarat * caratSize * parseInt(data.quantity)) + settingCost;
+    }
 
     setStones([...stones, {
       stoneType: data.stoneType,
@@ -213,6 +264,11 @@ export default function AnalysisPage() {
       pricePerCarat,
       settingCost,
       totalStoneCost,
+      shape: data.shape || undefined,
+      color: data.color || undefined,
+      clarity: data.clarity || undefined,
+      rapaportPrice,
+      discountPercent: discountPercent || undefined,
     }]);
     stoneForm.reset();
     setStoneDialogOpen(false);
@@ -242,6 +298,11 @@ export default function AnalysisPage() {
       pricePerCarat: s.pricePerCarat ? parseFloat(s.pricePerCarat) : undefined,
       settingCost: s.settingCost ? parseFloat(s.settingCost) : undefined,
       totalStoneCost: s.totalStoneCost ? parseFloat(s.totalStoneCost) : undefined,
+      shape: s.shape || undefined,
+      color: s.color || undefined,
+      clarity: s.clarity || undefined,
+      rapaportPrice: s.rapaportPrice ? parseFloat(s.rapaportPrice) : undefined,
+      discountPercent: s.discountPercent ? parseFloat(s.discountPercent) : undefined,
     })) || []);
     setDialogOpen(true);
   };
@@ -556,6 +617,109 @@ export default function AnalysisPage() {
                                 )}
                               />
                             </div>
+
+                            <div className="border-t pt-4 mt-2">
+                              <p className="text-sm text-muted-foreground mb-3">Pırlanta/Elmas için Rapaport Fiyatlandırma</p>
+                              <div className="grid grid-cols-3 gap-3">
+                                <FormField
+                                  control={stoneForm.control}
+                                  name="shape"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Kesim</FormLabel>
+                                      <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                          <SelectTrigger data-testid="select-stone-shape">
+                                            <SelectValue placeholder="Seçin" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          {DIAMOND_SHAPES.map((shape) => (
+                                            <SelectItem key={shape} value={shape}>
+                                              {shape}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={stoneForm.control}
+                                  name="color"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Renk</FormLabel>
+                                      <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                          <SelectTrigger data-testid="select-stone-color">
+                                            <SelectValue placeholder="Seçin" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          {DIAMOND_COLORS.map((color) => (
+                                            <SelectItem key={color} value={color}>
+                                              {color}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={stoneForm.control}
+                                  name="clarity"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Berraklık</FormLabel>
+                                      <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                          <SelectTrigger data-testid="select-stone-clarity">
+                                            <SelectValue placeholder="Seçin" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          {DIAMOND_CLARITIES.map((clarity) => (
+                                            <SelectItem key={clarity} value={clarity}>
+                                              {clarity}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                              <div className="mt-3">
+                                <FormField
+                                  control={stoneForm.control}
+                                  name="discountPercent"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>İskonto Oranı (%)</FormLabel>
+                                      <FormControl>
+                                        <Input 
+                                          type="number"
+                                          step="0.1"
+                                          min="0"
+                                          max="100"
+                                          placeholder="0" 
+                                          {...field} 
+                                          data-testid="input-stone-discount"
+                                        />
+                                      </FormControl>
+                                      <FormDescription>Rapaport fiyatından uygulanacak iskonto</FormDescription>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            </div>
+
                             <div className="flex justify-end gap-2">
                               <Button type="button" variant="outline" onClick={() => setStoneDialogOpen(false)}>
                                 İptal
@@ -578,6 +742,8 @@ export default function AnalysisPage() {
                             <TableHead>Taş</TableHead>
                             <TableHead>Karat</TableHead>
                             <TableHead>Adet</TableHead>
+                            <TableHead>Rapaport</TableHead>
+                            <TableHead>İskonto</TableHead>
                             <TableHead>Maliyet</TableHead>
                             <TableHead></TableHead>
                           </TableRow>
@@ -585,10 +751,23 @@ export default function AnalysisPage() {
                         <TableBody>
                           {stones.map((stone, index) => (
                             <TableRow key={index}>
-                              <TableCell>{stone.stoneType}</TableCell>
+                              <TableCell>
+                                <div>{stone.stoneType}</div>
+                                {stone.shape && (
+                                  <div className="text-xs text-muted-foreground">
+                                    {stone.shape} {stone.color}/{stone.clarity}
+                                  </div>
+                                )}
+                              </TableCell>
                               <TableCell className="font-mono">{stone.caratSize} ct</TableCell>
                               <TableCell>{stone.quantity}</TableCell>
-                              <TableCell className="font-mono">
+                              <TableCell className="font-mono text-sm">
+                                {stone.rapaportPrice ? `$${stone.rapaportPrice.toFixed(0)}/ct` : "-"}
+                              </TableCell>
+                              <TableCell className="font-mono text-sm">
+                                {stone.discountPercent ? `${stone.discountPercent}%` : "-"}
+                              </TableCell>
+                              <TableCell className="font-mono font-medium">
                                 ${stone.totalStoneCost?.toFixed(2) || "0.00"}
                               </TableCell>
                               <TableCell>
@@ -695,6 +874,8 @@ export default function AnalysisPage() {
                           <TableHead>Taş</TableHead>
                           <TableHead>Karat</TableHead>
                           <TableHead>Adet</TableHead>
+                          <TableHead>Rapaport</TableHead>
+                          <TableHead>İskonto</TableHead>
                           <TableHead>Maliyet</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -704,6 +885,12 @@ export default function AnalysisPage() {
                             <TableCell>{stone.stoneType}</TableCell>
                             <TableCell className="font-mono">{stone.caratSize} ct</TableCell>
                             <TableCell>{stone.quantity}</TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {stone.rapaportPrice ? `$${parseFloat(stone.rapaportPrice).toFixed(0)}/ct` : "-"}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {stone.discountPercent ? `${stone.discountPercent}%` : "-"}
+                            </TableCell>
                             <TableCell className="font-mono">${stone.totalStoneCost || "0"}</TableCell>
                           </TableRow>
                         ))}

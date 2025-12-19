@@ -230,7 +230,20 @@ export async function registerRoutes(
       if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.issues });
       }
-      const record = await storage.createAnalysisRecord(parsed.data, stones || []);
+      const formattedStones = (stones || []).map((stone: any) => ({
+        stoneType: stone.stoneType,
+        caratSize: stone.caratSize?.toString(),
+        quantity: stone.quantity,
+        pricePerCarat: stone.pricePerCarat?.toString() || null,
+        settingCost: stone.settingCost?.toString() || null,
+        totalStoneCost: stone.totalStoneCost?.toString() || null,
+        shape: stone.shape || null,
+        color: stone.color || null,
+        clarity: stone.clarity || null,
+        rapaportPrice: stone.rapaportPrice?.toString() || null,
+        discountPercent: stone.discountPercent?.toString() || null,
+      }));
+      const record = await storage.createAnalysisRecord(parsed.data, formattedStones);
       res.status(201).json(record);
     } catch (error) {
       console.error(error);
@@ -242,10 +255,23 @@ export async function registerRoutes(
     try {
       const id = parseInt(req.params.id);
       const { stones, ...recordData } = req.body;
+      const formattedStones = stones ? stones.map((stone: any) => ({
+        stoneType: stone.stoneType,
+        caratSize: stone.caratSize?.toString(),
+        quantity: stone.quantity,
+        pricePerCarat: stone.pricePerCarat?.toString() || null,
+        settingCost: stone.settingCost?.toString() || null,
+        totalStoneCost: stone.totalStoneCost?.toString() || null,
+        shape: stone.shape || null,
+        color: stone.color || null,
+        clarity: stone.clarity || null,
+        rapaportPrice: stone.rapaportPrice?.toString() || null,
+        discountPercent: stone.discountPercent?.toString() || null,
+      })) : undefined;
       const record = await storage.updateAnalysisRecord(id, {
         ...recordData,
         manufacturerId: recordData.manufacturerId ? parseInt(recordData.manufacturerId) : null,
-      }, stones);
+      }, formattedStones);
       if (!record) {
         return res.status(404).json({ error: "Record not found" });
       }
