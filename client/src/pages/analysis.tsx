@@ -122,6 +122,7 @@ export default function AnalysisPage() {
   });
 
   const goldPricePerGram = exchangeRates ? parseFloat(exchangeRates.gold24kPerGram) : 0;
+  const goldCurrency = exchangeRates?.gold24kCurrency || "TRY";
   const usdTryRate = exchangeRates ? parseFloat(exchangeRates.usdTry) : 1;
 
   const { data: analysisRecords, isLoading } = useQuery<AnalysisRecordWithRelations[]>({
@@ -169,7 +170,9 @@ export default function AnalysisPage() {
     const certificateAmount = safeNumber(parseFloat(form.watch("certificateAmount") || "0"));
     const manufacturerPrice = safeNumber(parseFloat(form.watch("manufacturerPrice") || "0"));
 
-    const goldPriceUsd = safeNumber(goldPricePerGram / usdTryRate);
+    const goldPriceUsd = goldCurrency === "USD" 
+      ? safeNumber(goldPricePerGram) 
+      : safeNumber(goldPricePerGram / usdTryRate);
     const rawMaterialCost = safeNumber(totalGrams * (1 + firePercentage / 100) * goldPriceUsd * purityFactor);
 
     let laborCost = 0;

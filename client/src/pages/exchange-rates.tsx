@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RefreshCw, Save, DollarSign, Coins } from "lucide-react";
 import type { ExchangeRate } from "@shared/schema";
 
@@ -13,6 +14,7 @@ export default function ExchangeRatesPage() {
   const { toast } = useToast();
   const [manualUsdTry, setManualUsdTry] = useState("");
   const [manualGold24k, setManualGold24k] = useState("");
+  const [goldCurrency, setGoldCurrency] = useState<"TRY" | "USD">("TRY");
 
   const { data: latestRate, isLoading } = useQuery<ExchangeRate | null>({
     queryKey: ["/api/exchange-rates/latest"],
@@ -30,13 +32,14 @@ export default function ExchangeRatesPage() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: (data: { usdTry: string; gold24kPerGram: string; isManual: boolean }) =>
+    mutationFn: (data: { usdTry: string; gold24kPerGram: string; gold24kCurrency: string; isManual: boolean }) =>
       apiRequest("/api/exchange-rates", "POST", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/exchange-rates/latest"] });
       toast({ title: "Kaydedildi", description: "Manuel kurlar kaydedildi" });
       setManualUsdTry("");
       setManualGold24k("");
+      setGoldCurrency("TRY");
     },
     onError: () => {
       toast({ title: "Hata", description: "Kurlar kaydedilemedi", variant: "destructive" });
@@ -51,6 +54,7 @@ export default function ExchangeRatesPage() {
     saveMutation.mutate({
       usdTry: manualUsdTry,
       gold24kPerGram: manualGold24k,
+      gold24kCurrency: goldCurrency,
       isManual: true,
     });
   };
@@ -94,8 +98,8 @@ export default function ExchangeRatesPage() {
                 <div className="flex items-center gap-3 p-4 bg-muted rounded-md">
                   <Coins className="h-8 w-8 text-yellow-600" />
                   <div>
-                    <p className="text-sm text-muted-foreground">24K Altin (TRY/gram)</p>
-                    <p className="text-2xl font-bold" data-testid="text-gold-price">{latestRate.gold24kPerGram}</p>
+                    <p className="text-sm text-muted-foreground">24K Altin ({latestRate.gold24kCurrency || "TRY"}/gram)</p>
+                    <p className="text-2xl font-bold" data-testid="text-gold-price">{latestRate.gold24kPerGram} {latestRate.gold24kCurrency || "TRY"}</p>
                   </div>
                 </div>
                 <div className="text-sm text-muted-foreground">
@@ -127,16 +131,28 @@ export default function ExchangeRatesPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="gold-24k">24K Altin Fiyati (TRY/gram)</Label>
-              <Input
-                id="gold-24k"
-                type="number"
-                step="0.01"
-                placeholder="Ornek: 2450.00"
-                value={manualGold24k}
-                onChange={(e) => setManualGold24k(e.target.value)}
-                data-testid="input-gold-24k"
-              />
+              <Label htmlFor="gold-24k">24K Altin Fiyati (gram)</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="gold-24k"
+                  type="number"
+                  step="0.01"
+                  placeholder={goldCurrency === "TRY" ? "Ornek: 2450.00" : "Ornek: 75.00"}
+                  value={manualGold24k}
+                  onChange={(e) => setManualGold24k(e.target.value)}
+                  className="flex-1"
+                  data-testid="input-gold-24k"
+                />
+                <Select value={goldCurrency} onValueChange={(v) => setGoldCurrency(v as "TRY" | "USD")}>
+                  <SelectTrigger className="w-24" data-testid="select-gold-currency">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="TRY">TRY</SelectItem>
+                    <SelectItem value="USD">USD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <Button
               onClick={handleManualSave}
