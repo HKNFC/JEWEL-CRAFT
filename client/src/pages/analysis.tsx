@@ -118,7 +118,7 @@ export default function AnalysisPage() {
   }
 
   const { data: exchangeRates } = useQuery<ExchangeRates>({
-    queryKey: ["/api/exchange-rates"],
+    queryKey: ["/api/exchange-rates/latest"],
   });
 
   const goldPricePerGram = exchangeRates ? parseFloat(exchangeRates.gold24kPerGram) : 0;
