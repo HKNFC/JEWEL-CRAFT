@@ -1,16 +1,271 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { 
+  insertManufacturerSchema,
+  insertStoneSettingRateSchema,
+  insertGemstonePriceListSchema,
+  insertAnalysisRecordSchema,
+} from "@shared/schema";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+  app.get("/api/manufacturers", async (req, res) => {
+    try {
+      const manufacturers = await storage.getManufacturers();
+      res.json(manufacturers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch manufacturers" });
+    }
+  });
+
+  app.get("/api/manufacturers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const manufacturer = await storage.getManufacturer(id);
+      if (!manufacturer) {
+        return res.status(404).json({ error: "Manufacturer not found" });
+      }
+      res.json(manufacturer);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch manufacturer" });
+    }
+  });
+
+  app.post("/api/manufacturers", async (req, res) => {
+    try {
+      const parsed = insertManufacturerSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.issues });
+      }
+      const manufacturer = await storage.createManufacturer(parsed.data);
+      res.status(201).json(manufacturer);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create manufacturer" });
+    }
+  });
+
+  app.patch("/api/manufacturers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const manufacturer = await storage.updateManufacturer(id, req.body);
+      if (!manufacturer) {
+        return res.status(404).json({ error: "Manufacturer not found" });
+      }
+      res.json(manufacturer);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update manufacturer" });
+    }
+  });
+
+  app.delete("/api/manufacturers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteManufacturer(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Manufacturer not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete manufacturer" });
+    }
+  });
+
+  app.get("/api/stone-setting-rates", async (req, res) => {
+    try {
+      const rates = await storage.getStoneSettingRates();
+      res.json(rates);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch stone setting rates" });
+    }
+  });
+
+  app.get("/api/stone-setting-rates/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const rate = await storage.getStoneSettingRate(id);
+      if (!rate) {
+        return res.status(404).json({ error: "Rate not found" });
+      }
+      res.json(rate);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch rate" });
+    }
+  });
+
+  app.post("/api/stone-setting-rates", async (req, res) => {
+    try {
+      const parsed = insertStoneSettingRateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.issues });
+      }
+      const rate = await storage.createStoneSettingRate(parsed.data);
+      res.status(201).json(rate);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create rate" });
+    }
+  });
+
+  app.patch("/api/stone-setting-rates/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const rate = await storage.updateStoneSettingRate(id, req.body);
+      if (!rate) {
+        return res.status(404).json({ error: "Rate not found" });
+      }
+      res.json(rate);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update rate" });
+    }
+  });
+
+  app.delete("/api/stone-setting-rates/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteStoneSettingRate(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Rate not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete rate" });
+    }
+  });
+
+  app.get("/api/gemstone-prices", async (req, res) => {
+    try {
+      const prices = await storage.getGemstonePriceLists();
+      res.json(prices);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch gemstone prices" });
+    }
+  });
+
+  app.get("/api/gemstone-prices/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const price = await storage.getGemstonePriceList(id);
+      if (!price) {
+        return res.status(404).json({ error: "Price not found" });
+      }
+      res.json(price);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch price" });
+    }
+  });
+
+  app.post("/api/gemstone-prices", async (req, res) => {
+    try {
+      const parsed = insertGemstonePriceListSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.issues });
+      }
+      const price = await storage.createGemstonePriceList(parsed.data);
+      res.status(201).json(price);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create price" });
+    }
+  });
+
+  app.patch("/api/gemstone-prices/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const price = await storage.updateGemstonePriceList(id, req.body);
+      if (!price) {
+        return res.status(404).json({ error: "Price not found" });
+      }
+      res.json(price);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update price" });
+    }
+  });
+
+  app.delete("/api/gemstone-prices/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteGemstonePriceList(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Price not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete price" });
+    }
+  });
+
+  app.get("/api/analysis-records", async (req, res) => {
+    try {
+      const records = await storage.getAnalysisRecords();
+      res.json(records);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch analysis records" });
+    }
+  });
+
+  app.get("/api/analysis-records/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const record = await storage.getAnalysisRecord(id);
+      if (!record) {
+        return res.status(404).json({ error: "Record not found" });
+      }
+      res.json(record);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch record" });
+    }
+  });
+
+  app.post("/api/analysis-records", async (req, res) => {
+    try {
+      const { stones, ...recordData } = req.body;
+      const parsed = insertAnalysisRecordSchema.safeParse({
+        ...recordData,
+        manufacturerId: recordData.manufacturerId ? parseInt(recordData.manufacturerId) : null,
+      });
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.issues });
+      }
+      const record = await storage.createAnalysisRecord(parsed.data, stones || []);
+      res.status(201).json(record);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to create record" });
+    }
+  });
+
+  app.patch("/api/analysis-records/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { stones, ...recordData } = req.body;
+      const record = await storage.updateAnalysisRecord(id, {
+        ...recordData,
+        manufacturerId: recordData.manufacturerId ? parseInt(recordData.manufacturerId) : null,
+      }, stones);
+      if (!record) {
+        return res.status(404).json({ error: "Record not found" });
+      }
+      res.json(record);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to update record" });
+    }
+  });
+
+  app.delete("/api/analysis-records/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteAnalysisRecord(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Record not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete record" });
+    }
+  });
 
   return httpServer;
 }
