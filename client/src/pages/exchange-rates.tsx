@@ -21,7 +21,7 @@ export default function ExchangeRatesPage() {
   });
 
   const fetchMutation = useMutation({
-    mutationFn: () => apiRequest("/api/exchange-rates/fetch", "POST"),
+    mutationFn: () => apiRequest("POST", "/api/exchange-rates/fetch"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/exchange-rates/latest"] });
       toast({ title: "Kurlar guncellendi", description: "API'den guncel kurlar alindi" });
@@ -33,7 +33,7 @@ export default function ExchangeRatesPage() {
 
   const saveMutation = useMutation({
     mutationFn: (data: { usdTry: string; gold24kPerGram: string; gold24kCurrency: string; isManual: boolean }) =>
-      apiRequest("/api/exchange-rates", "POST", data),
+      apiRequest("POST", "/api/exchange-rates", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/exchange-rates/latest"] });
       toast({ title: "Kaydedildi", description: "Manuel kurlar kaydedildi" });
