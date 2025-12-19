@@ -6,7 +6,9 @@ import {
   insertStoneSettingRateSchema,
   insertGemstonePriceListSchema,
   insertAnalysisRecordSchema,
+  insertExchangeRateSchema,
 } from "@shared/schema";
+import { fetchGoldPrices } from "./goldapi";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -264,6 +266,98 @@ export async function registerRoutes(
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete record" });
+    }
+  });
+
+  app.get("/api/exchange-rates/latest", async (req, res) => {
+    try {
+      const rate = await storage.getLatestExchangeRate();
+      res.json(rate || null);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch exchange rate" });
+    }
+  });
+
+  app.post("/api/exchange-rates", async (req, res) => {
+    try {
+      const parsed = insertExchangeRateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.issues });
+      }
+      const rate = await storage.createExchangeRate(parsed.data);
+      res.status(201).json(rate);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save exchange rate" });
+    }
+  });
+
+  app.post("/api/exchange-rates/fetch", async (req, res) => {
+    try {
+      const apiKey = process.env.GOLDAPI_KEY;
+      if (!apiKey) {
+        return res.status(400).json({ error: "GoldAPI key not configured" });
+      }
+      const data = await fetchGoldPrices(apiKey);
+      const rate = await storage.createExchangeRate({
+        usdTry: data.usdTry.toString(),
+        gold24kPerGram: data.gold24kPerGram.toString(),
+        gold24kCurrency: data.gold24kCurrency,
+        isManual: false,
+      });
+      res.status(201).json(rate);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to fetch exchange rates from API" });
+    }
+  });
+
+  app.get("/api/rapaport-prices", async (req, res) => {
+    try {
+      const prices = await storage.getRapaportPrices();
+      res.json(prices);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch Rapaport prices" });
+    }
+  });
+
+  app.post("/api/rapaport-prices/upload", async (req, res) => {
+    try {
+      const { prices, clearExisting } = req.body;
+      if (clearExisting) {
+        await storage.clearRapaportPrices();
+      }
+      const saved = await storage.createRapaportPrices(prices);
+      res.status(201).json(saved);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to save Rapaport prices" });
+    }
+  });
+
+  app.delete("/api/rapaport-prices", async (req, res) => {
+    try {
+      await storage.clearRapaportPrices();
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to clear Rapaport prices" });
+    }
+  });
+
+  app.get("/api/rapaport-prices/lookup", async (req, res) => {
+    try {
+      const { shape, carat, color, clarity } = req.query;
+      if (!shape || !carat || !color || !clarity) {
+        return res.status(400).json({ error: "Missing required parameters" });
+      }
+      const price = await storage.findRapaportPrice(
+        shape as string,
+        parseFloat(carat as string),
+        color as string,
+        clarity as string
+      );
+      res.json(price || null);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to lookup Rapaport price" });
     }
   });
 

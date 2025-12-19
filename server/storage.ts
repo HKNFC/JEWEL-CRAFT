@@ -4,6 +4,8 @@ import {
   gemstonePriceLists, 
   analysisRecords, 
   analysisStones,
+  exchangeRates,
+  rapaportPrices,
   type Manufacturer, 
   type InsertManufacturer,
   type StoneSettingRate,
@@ -15,9 +17,13 @@ import {
   type AnalysisStone,
   type InsertAnalysisStone,
   type AnalysisRecordWithRelations,
+  type ExchangeRate,
+  type InsertExchangeRate,
+  type RapaportPrice,
+  type InsertRapaportPrice,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and, gte, lte, desc } from "drizzle-orm";
 
 export interface IStorage {
   getManufacturers(): Promise<Manufacturer[]>;
@@ -43,6 +49,14 @@ export interface IStorage {
   createAnalysisRecord(data: InsertAnalysisRecord, stones: Omit<InsertAnalysisStone, 'analysisRecordId'>[]): Promise<AnalysisRecord>;
   updateAnalysisRecord(id: number, data: Partial<InsertAnalysisRecord>, stones?: Omit<InsertAnalysisStone, 'analysisRecordId'>[]): Promise<AnalysisRecord | undefined>;
   deleteAnalysisRecord(id: number): Promise<boolean>;
+
+  getLatestExchangeRate(): Promise<ExchangeRate | undefined>;
+  createExchangeRate(data: InsertExchangeRate): Promise<ExchangeRate>;
+  
+  getRapaportPrices(): Promise<RapaportPrice[]>;
+  createRapaportPrices(data: InsertRapaportPrice[]): Promise<RapaportPrice[]>;
+  clearRapaportPrices(): Promise<void>;
+  findRapaportPrice(shape: string, carat: number, color: string, clarity: string): Promise<RapaportPrice | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -234,6 +248,44 @@ export class DatabaseStorage implements IStorage {
   async deleteAnalysisRecord(id: number): Promise<boolean> {
     const result = await db.delete(analysisRecords).where(eq(analysisRecords.id, id)).returning();
     return result.length > 0;
+  }
+
+  async getLatestExchangeRate(): Promise<ExchangeRate | undefined> {
+    const [rate] = await db.select().from(exchangeRates).orderBy(desc(exchangeRates.updatedAt)).limit(1);
+    return rate || undefined;
+  }
+
+  async createExchangeRate(data: InsertExchangeRate): Promise<ExchangeRate> {
+    const [rate] = await db.insert(exchangeRates).values(data).returning();
+    return rate;
+  }
+
+  async getRapaportPrices(): Promise<RapaportPrice[]> {
+    return db.select().from(rapaportPrices);
+  }
+
+  async createRapaportPrices(data: InsertRapaportPrice[]): Promise<RapaportPrice[]> {
+    if (data.length === 0) return [];
+    const results = await db.insert(rapaportPrices).values(data).returning();
+    return results;
+  }
+
+  async clearRapaportPrices(): Promise<void> {
+    await db.delete(rapaportPrices);
+  }
+
+  async findRapaportPrice(shape: string, carat: number, color: string, clarity: string): Promise<RapaportPrice | undefined> {
+    const caratStr = carat.toString();
+    const [price] = await db.select().from(rapaportPrices).where(
+      and(
+        eq(rapaportPrices.shape, shape),
+        eq(rapaportPrices.color, color),
+        eq(rapaportPrices.clarity, clarity),
+        lte(rapaportPrices.lowCarat, caratStr),
+        gte(rapaportPrices.highCarat, caratStr)
+      )
+    );
+    return price || undefined;
   }
 }
 
