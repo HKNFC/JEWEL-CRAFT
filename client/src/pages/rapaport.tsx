@@ -53,6 +53,100 @@ export default function RapaportPage() {
     },
   });
 
+  const parseRapaportFormat = (text: string): any[] => {
+    const lines = text.split("\n");
+    const parsedPrices: any[] = [];
+    
+    const clarityOrder = ["IF", "VVS1", "VVS2", "VS1", "VS2", "SI1", "SI2", "SI3", "I1", "I2", "I3"];
+    
+    let currentLowCarat = "";
+    let currentHighCarat = "";
+    let currentShape = "Round";
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      const caratMatch = line.match(/RAPAPORT\s*:\s*\(\.?(\d+)\s*-\s*\.?(\d+)\s*CT\.\)/i) ||
+                         line.match(/RAPAPORT\s*:\s*\((\d+\.\d+)\s*-\s*(\d+\.\d+)\s*CT\.\)/i);
+      
+      if (caratMatch) {
+        let low = caratMatch[1];
+        let high = caratMatch[2];
+        
+        if (!low.includes(".")) {
+          low = "0." + low.padStart(2, "0");
+        }
+        if (!high.includes(".")) {
+          high = "0." + high.padStart(2, "0");
+        }
+        
+        currentLowCarat = low;
+        currentHighCarat = high;
+        continue;
+      }
+      
+      if (line.toLowerCase().includes("pear")) currentShape = "Pear";
+      else if (line.toLowerCase().includes("marquise")) currentShape = "Marquise";
+      else if (line.toLowerCase().includes("oval")) currentShape = "Oval";
+      else if (line.toLowerCase().includes("heart")) currentShape = "Heart";
+      else if (line.toLowerCase().includes("emerald")) currentShape = "Emerald";
+      else if (line.toLowerCase().includes("princess")) currentShape = "Princess";
+      else if (line.toLowerCase().includes("cushion")) currentShape = "Cushion";
+      else if (line.toLowerCase().includes("radiant")) currentShape = "Radiant";
+      else if (line.toLowerCase().includes("asscher")) currentShape = "Asscher";
+      
+      if (!currentLowCarat || !currentHighCarat) continue;
+      
+      const colorMatch = line.match(/^"?\s*([D-M])\s+/);
+      if (colorMatch) {
+        const color = colorMatch[1];
+        
+        const numbers = line.match(/\d+/g);
+        if (numbers && numbers.length >= 5) {
+          const priceValues = numbers.slice(0, Math.min(numbers.length, clarityOrder.length));
+          
+          priceValues.forEach((price, idx) => {
+            if (idx < clarityOrder.length) {
+              const priceNum = parseInt(price);
+              if (priceNum > 0 && priceNum < 10000) {
+                parsedPrices.push({
+                  shape: currentShape,
+                  lowCarat: currentLowCarat,
+                  highCarat: currentHighCarat,
+                  color: color,
+                  clarity: clarityOrder[idx],
+                  pricePerCarat: (priceNum * 100).toString(),
+                });
+              }
+            }
+          });
+        }
+      }
+    }
+    
+    return parsedPrices;
+  };
+
+  const parseSimpleCsvFormat = (text: string): any[] => {
+    const lines = text.split("\n").filter(line => line.trim());
+    const parsedPrices: any[] = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(",").map(c => c.trim().replace(/"/g, ""));
+      if (cols.length >= 6) {
+        parsedPrices.push({
+          shape: cols[0],
+          lowCarat: cols[1],
+          highCarat: cols[2],
+          color: cols[3],
+          clarity: cols[4],
+          pricePerCarat: cols[5],
+        });
+      }
+    }
+    return parsedPrices;
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -68,21 +162,19 @@ export default function RapaportPage() {
 
     if (file.type === "text/csv" || file.name.endsWith(".csv")) {
       const text = await file.text();
-      const lines = text.split("\n").filter(line => line.trim());
-      const parsedPrices: any[] = [];
       
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(",").map(c => c.trim());
-        if (cols.length >= 6) {
-          parsedPrices.push({
-            shape: cols[0],
-            lowCarat: cols[1],
-            highCarat: cols[2],
-            color: cols[3],
-            clarity: cols[4],
-            pricePerCarat: cols[5],
+      let parsedPrices: any[] = [];
+      
+      if (text.toUpperCase().includes("RAPAPORT")) {
+        parsedPrices = parseRapaportFormat(text);
+        if (parsedPrices.length > 0) {
+          toast({ 
+            title: "Rapaport Formati", 
+            description: `${parsedPrices.length} fiyat kaydi okundu` 
           });
         }
+      } else {
+        parsedPrices = parseSimpleCsvFormat(text);
       }
       
       if (parsedPrices.length > 0) {
