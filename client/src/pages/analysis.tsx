@@ -394,7 +394,10 @@ export default function AnalysisPage() {
   );
 
   const totalStoneCost = stones.reduce((sum, s) => sum + (s.totalStoneCost || 0), 0);
-  const stoneTypes = gemstonePrices?.map(g => g.stoneType).filter((v, i, a) => a.indexOf(v) === i) || [];
+  const baseStoneTypes = gemstonePrices?.map(g => g.stoneType).filter((v, i, a) => a.indexOf(v) === i) || [];
+  const stoneTypes = baseStoneTypes.some(t => t.toLowerCase().includes("pırlanta")) 
+    ? baseStoneTypes 
+    : ["Pırlanta", ...baseStoneTypes];
 
   return (
     <div className="p-6 space-y-6">
