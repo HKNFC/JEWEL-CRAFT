@@ -35,6 +35,14 @@ export const analysisRecords = pgTable("analysis_records", {
   polishAmount: decimal("polish_amount", { precision: 10, scale: 2 }),
   certificateAmount: decimal("certificate_amount", { precision: 10, scale: 2 }),
   totalCost: decimal("total_cost", { precision: 12, scale: 2 }),
+  manufacturerPrice: decimal("manufacturer_price", { precision: 12, scale: 2 }),
+  rawMaterialCost: decimal("raw_material_cost", { precision: 12, scale: 2 }),
+  laborCost: decimal("labor_cost", { precision: 12, scale: 2 }),
+  totalSettingCost: decimal("total_setting_cost", { precision: 12, scale: 2 }),
+  totalStoneCost: decimal("total_stone_cost", { precision: 12, scale: 2 }),
+  profitLoss: decimal("profit_loss", { precision: 12, scale: 2 }),
+  goldPriceUsed: decimal("gold_price_used", { precision: 12, scale: 2 }),
+  usdTryUsed: decimal("usd_try_used", { precision: 10, scale: 4 }),
 });
 
 export const analysisStones = pgTable("analysis_stones", {
