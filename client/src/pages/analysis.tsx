@@ -60,6 +60,7 @@ const analysisFormSchema = z.object({
   manufacturerId: z.string().min(1, "Üretici seçiniz"),
   productCode: z.string().min(1, "Ürün kodu gerekli"),
   totalGrams: z.string().min(1, "Toplam gram gerekli"),
+  goldPurity: z.string().default("24"),
   goldLaborCost: z.string().optional(),
   goldLaborType: z.string().default("dollar"),
   firePercentage: z.string().optional(),
@@ -67,6 +68,15 @@ const analysisFormSchema = z.object({
   certificateAmount: z.string().optional(),
   manufacturerPrice: z.string().optional(),
 });
+
+const GOLD_PURITIES = [
+  { value: "24", label: "24 Ayar (Saf Altın)", factor: 1.000 },
+  { value: "22", label: "22 Ayar", factor: 0.9167 },
+  { value: "18", label: "18 Ayar", factor: 0.750 },
+  { value: "14", label: "14 Ayar", factor: 0.5833 },
+  { value: "10", label: "10 Ayar", factor: 0.4167 },
+  { value: "9", label: "9 Ayar", factor: 0.375 },
+];
 
 type AnalysisFormValues = z.infer<typeof analysisFormSchema>;
 
@@ -136,6 +146,7 @@ export default function AnalysisPage() {
       manufacturerId: "",
       productCode: "",
       totalGrams: "",
+      goldPurity: "24",
       goldLaborCost: "",
       goldLaborType: "dollar",
       firePercentage: "0",
@@ -149,6 +160,8 @@ export default function AnalysisPage() {
     const safeNumber = (val: number) => (isNaN(val) || !isFinite(val)) ? 0 : val;
     
     const totalGrams = safeNumber(parseFloat(form.watch("totalGrams") || "0"));
+    const goldPurity = form.watch("goldPurity") || "24";
+    const purityFactor = GOLD_PURITIES.find(p => p.value === goldPurity)?.factor || 1;
     const firePercentage = safeNumber(fireValue[0]);
     const goldLaborCost = safeNumber(parseFloat(form.watch("goldLaborCost") || "0"));
     const goldLaborType = form.watch("goldLaborType");
@@ -157,7 +170,7 @@ export default function AnalysisPage() {
     const manufacturerPrice = safeNumber(parseFloat(form.watch("manufacturerPrice") || "0"));
 
     const goldPriceUsd = safeNumber(goldPricePerGram / usdTryRate);
-    const rawMaterialCost = safeNumber(totalGrams * (1 + firePercentage / 100) * goldPriceUsd);
+    const rawMaterialCost = safeNumber(totalGrams * (1 + firePercentage / 100) * goldPriceUsd * purityFactor);
 
     let laborCost = 0;
     if (goldLaborType === "gold") {
@@ -348,6 +361,7 @@ export default function AnalysisPage() {
       manufacturerId: record.manufacturerId?.toString() || "",
       productCode: record.productCode,
       totalGrams: record.totalGrams,
+      goldPurity: record.goldPurity || "24",
       goldLaborCost: record.goldLaborCost || "",
       goldLaborType: record.goldLaborType || "dollar",
       firePercentage: record.firePercentage || "0",
@@ -483,6 +497,28 @@ export default function AnalysisPage() {
                             data-testid="input-total-grams"
                           />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="goldPurity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Ayar</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-gold-purity">
+                              <SelectValue placeholder="Ayar seçin" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {GOLD_PURITIES.map(p => (
+                              <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}

@@ -227,6 +227,7 @@ export async function registerRoutes(
       const parsed = insertAnalysisRecordSchema.safeParse({
         ...recordData,
         manufacturerId: recordData.manufacturerId ? parseInt(recordData.manufacturerId) : null,
+        goldPurity: recordData.goldPurity || "24",
         goldLaborCost: toNullIfEmpty(recordData.goldLaborCost),
         firePercentage: toNullIfEmpty(recordData.firePercentage),
         polishAmount: toNullIfEmpty(recordData.polishAmount),
@@ -286,6 +287,7 @@ export async function registerRoutes(
       const record = await storage.updateAnalysisRecord(id, {
         ...recordData,
         manufacturerId: recordData.manufacturerId ? parseInt(recordData.manufacturerId) : null,
+        goldPurity: recordData.goldPurity || "24",
         goldLaborCost: toNullIfEmpty(recordData.goldLaborCost),
         firePercentage: toNullIfEmpty(recordData.firePercentage),
         polishAmount: toNullIfEmpty(recordData.polishAmount),

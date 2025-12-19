@@ -200,6 +200,7 @@ export class DatabaseStorage implements IStorage {
       manufacturerId: data.manufacturerId !== undefined ? data.manufacturerId : existing.manufacturerId,
       productCode: data.productCode !== undefined ? data.productCode : existing.productCode,
       totalGrams: data.totalGrams !== undefined ? data.totalGrams : existing.totalGrams,
+      goldPurity: data.goldPurity !== undefined ? data.goldPurity : existing.goldPurity,
       goldLaborCost: data.goldLaborCost !== undefined ? data.goldLaborCost : existing.goldLaborCost,
       goldLaborType: data.goldLaborType !== undefined ? data.goldLaborType : existing.goldLaborType,
       firePercentage: data.firePercentage !== undefined ? data.firePercentage : existing.firePercentage,

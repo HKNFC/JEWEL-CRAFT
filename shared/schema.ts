@@ -29,6 +29,7 @@ export const analysisRecords = pgTable("analysis_records", {
   manufacturerId: integer("manufacturer_id").references(() => manufacturers.id),
   productCode: text("product_code").notNull(),
   totalGrams: decimal("total_grams", { precision: 10, scale: 3 }).notNull(),
+  goldPurity: text("gold_purity").default("24"),
   goldLaborCost: decimal("gold_labor_cost", { precision: 10, scale: 2 }),
   goldLaborType: text("gold_labor_type").default("dollar"),
   firePercentage: decimal("fire_percentage", { precision: 5, scale: 2 }),
