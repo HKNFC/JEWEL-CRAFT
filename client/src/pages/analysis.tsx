@@ -65,6 +65,7 @@ const analysisFormSchema = z.object({
   firePercentage: z.string().optional(),
   polishAmount: z.string().optional(),
   certificateAmount: z.string().optional(),
+  manufacturerPrice: z.string().optional(),
 });
 
 type AnalysisFormValues = z.infer<typeof analysisFormSchema>;
@@ -100,6 +101,19 @@ export default function AnalysisPage() {
   const [fireValue, setFireValue] = useState([0]);
   const [polishEnabled, setPolishEnabled] = useState(false);
 
+  interface ExchangeRates {
+    usdTry: string;
+    gold24kPerGram: string;
+    gold24kCurrency: string;
+  }
+
+  const { data: exchangeRates } = useQuery<ExchangeRates>({
+    queryKey: ["/api/exchange-rates"],
+  });
+
+  const goldPricePerGram = exchangeRates ? parseFloat(exchangeRates.gold24kPerGram) : 0;
+  const usdTryRate = exchangeRates ? parseFloat(exchangeRates.usdTry) : 1;
+
   const { data: analysisRecords, isLoading } = useQuery<AnalysisRecordWithRelations[]>({
     queryKey: ["/api/analysis-records"],
   });
@@ -127,8 +141,50 @@ export default function AnalysisPage() {
       firePercentage: "0",
       polishAmount: "",
       certificateAmount: "",
+      manufacturerPrice: "",
     },
   });
+
+  const calculateCosts = () => {
+    const safeNumber = (val: number) => (isNaN(val) || !isFinite(val)) ? 0 : val;
+    
+    const totalGrams = safeNumber(parseFloat(form.watch("totalGrams") || "0"));
+    const firePercentage = safeNumber(fireValue[0]);
+    const goldLaborCost = safeNumber(parseFloat(form.watch("goldLaborCost") || "0"));
+    const goldLaborType = form.watch("goldLaborType");
+    const polishAmount = polishEnabled ? safeNumber(parseFloat(form.watch("polishAmount") || "0")) : 0;
+    const certificateAmount = safeNumber(parseFloat(form.watch("certificateAmount") || "0"));
+    const manufacturerPrice = safeNumber(parseFloat(form.watch("manufacturerPrice") || "0"));
+
+    const rawMaterialCost = safeNumber(totalGrams * (1 + firePercentage / 100) * goldPricePerGram);
+
+    let laborCost = 0;
+    if (goldLaborType === "gold") {
+      laborCost = safeNumber(goldLaborCost * goldPricePerGram);
+    } else {
+      laborCost = safeNumber(goldLaborCost * usdTryRate);
+    }
+    laborCost += safeNumber((polishAmount * usdTryRate) + (certificateAmount * usdTryRate));
+
+    const totalSettingCost = safeNumber(stones.reduce((sum, s) => sum + (s.settingCost || 0), 0) * usdTryRate);
+    const totalStoneCostValue = safeNumber(stones.reduce((sum, s) => sum + (s.totalStoneCost || 0), 0) * usdTryRate);
+
+    const totalCost = safeNumber(rawMaterialCost + laborCost + totalSettingCost + totalStoneCostValue);
+    const profitLoss = safeNumber((manufacturerPrice * usdTryRate) - totalCost);
+    const manufacturerPriceTry = safeNumber(manufacturerPrice * usdTryRate);
+
+    return {
+      rawMaterialCost,
+      laborCost,
+      totalSettingCost,
+      totalStoneCost: totalStoneCostValue,
+      totalCost,
+      profitLoss,
+      manufacturerPriceTry,
+    };
+  };
+
+  const costs = calculateCosts();
 
   useEffect(() => {
     if (selectedManufacturer) {
@@ -206,7 +262,18 @@ export default function AnalysisPage() {
   };
 
   const onSubmit = (data: AnalysisFormValues) => {
-    const formData = { ...data, firePercentage: fireValue[0].toString() };
+    const formData = { 
+      ...data, 
+      firePercentage: fireValue[0].toString(),
+      rawMaterialCost: costs.rawMaterialCost.toFixed(2),
+      laborCost: costs.laborCost.toFixed(2),
+      totalSettingCost: costs.totalSettingCost.toFixed(2),
+      totalStoneCost: costs.totalStoneCost.toFixed(2),
+      totalCost: costs.totalCost.toFixed(2),
+      profitLoss: costs.profitLoss.toFixed(2),
+      goldPriceUsed: goldPricePerGram.toFixed(2),
+      usdTryUsed: usdTryRate.toFixed(4),
+    };
     if (editingId) {
       updateMutation.mutate({ id: editingId, record: formData, stones });
     } else {
@@ -253,16 +320,16 @@ export default function AnalysisPage() {
           stone.rapaportPrice = rapPrice;
           const discountPercent = stone.discountPercent || 0;
           const discountedPrice = rapPrice * (1 - discountPercent / 100);
-          stone.totalStoneCost = (discountedPrice * caratSize * quantity) + stone.settingCost;
+          stone.totalStoneCost = discountedPrice * caratSize * quantity;
         } else {
           const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
           stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
-          stone.totalStoneCost = (stone.pricePerCarat * caratSize * quantity) + stone.settingCost;
+          stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
         }
       } else {
         const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
         stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
-        stone.totalStoneCost = (stone.pricePerCarat * caratSize * quantity) + stone.settingCost;
+        stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
       }
     }
     
@@ -286,6 +353,7 @@ export default function AnalysisPage() {
       firePercentage: record.firePercentage || "0",
       polishAmount: record.polishAmount || "",
       certificateAmount: record.certificateAmount || "",
+      manufacturerPrice: record.manufacturerPrice || "",
     });
     setFireValue([parseFloat(record.firePercentage || "0")]);
     setPolishEnabled(!!record.polishAmount && parseFloat(record.polishAmount) > 0);
@@ -503,6 +571,25 @@ export default function AnalysisPage() {
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={form.control}
+                    name="manufacturerPrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Üretici Fiyatı ($)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number"
+                            step="0.01"
+                            placeholder="0" 
+                            {...field} 
+                            data-testid="input-manufacturer-price"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 <div className="space-y-4">
@@ -648,8 +735,12 @@ export default function AnalysisPage() {
                                   <div className="font-mono text-sm">${stone.settingCost?.toFixed(2) || "0.00"}</div>
                                 </div>
                                 <div className="text-right">
+                                  <Label className="text-xs text-muted-foreground">Taş</Label>
+                                  <div className="font-mono text-sm">${stone.totalStoneCost?.toFixed(2) || "0.00"}</div>
+                                </div>
+                                <div className="text-right">
                                   <Label className="text-xs text-muted-foreground">Toplam</Label>
-                                  <div className="font-mono font-medium">${stone.totalStoneCost?.toFixed(2) || "0.00"}</div>
+                                  <div className="font-mono font-medium">${((stone.totalStoneCost || 0) + (stone.settingCost || 0)).toFixed(2)}</div>
                                 </div>
                                 <Button
                                   type="button"
@@ -679,6 +770,65 @@ export default function AnalysisPage() {
                       Henüz taş eklenmedi. Taş eklemek için yukarıdaki butonu kullanın.
                     </div>
                   )}
+                </div>
+
+                <div className="p-4 bg-muted/30 rounded-lg space-y-3">
+                  <h3 className="font-medium text-lg">Maliyet Özeti</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Hammadde</p>
+                      <p className="font-mono font-medium" data-testid="text-raw-material-cost">
+                        {costs.rawMaterialCost.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        ({form.watch("totalGrams") || "0"} gr x {(1 + fireValue[0] / 100).toFixed(3)})
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">İşçilik</p>
+                      <p className="font-mono font-medium" data-testid="text-labor-cost">
+                        {costs.laborCost.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Mıhlama</p>
+                      <p className="font-mono font-medium" data-testid="text-setting-cost">
+                        {costs.totalSettingCost.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Taş Maliyeti</p>
+                      <p className="font-mono font-medium" data-testid="text-stone-cost">
+                        {costs.totalStoneCost.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                      </p>
+                    </div>
+                  </div>
+                  <div className="pt-3 border-t flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Toplam Maliyet</p>
+                      <p className="font-mono font-bold text-xl" data-testid="text-total-cost">
+                        {costs.totalCost.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Üretici Fiyatı</p>
+                      <p className="font-mono font-bold text-xl" data-testid="text-manufacturer-price-try">
+                        {costs.manufacturerPriceTry.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Kâr / Zarar</p>
+                      <p 
+                        className={`font-mono font-bold text-xl ${costs.profitLoss >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
+                        data-testid="text-profit-loss"
+                      >
+                        {costs.profitLoss >= 0 ? '+' : ''}{costs.profitLoss.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground pt-2">
+                    Kurlar: 1 USD = {usdTryRate.toFixed(4)} TL | Altın = {goldPricePerGram.toFixed(2)} TL/gr
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-2 pt-4 border-t">
@@ -745,9 +895,58 @@ export default function AnalysisPage() {
                   <p className="font-medium font-mono">${selectedRecord.certificateAmount || "0"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Toplam Maliyet</p>
-                  <p className="font-bold text-lg font-mono">${selectedRecord.totalCost || "0"}</p>
+                  <p className="text-sm text-muted-foreground">Üretici Fiyatı</p>
+                  <p className="font-medium font-mono">${selectedRecord.manufacturerPrice || "0"}</p>
                 </div>
+              </div>
+
+              <div className="p-4 bg-muted/30 rounded-lg space-y-3">
+                <h4 className="font-medium">Maliyet Dağılımı</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Hammadde</p>
+                    <p className="font-mono font-medium">
+                      {parseFloat(selectedRecord.rawMaterialCost || "0").toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">İşçilik</p>
+                    <p className="font-mono font-medium">
+                      {parseFloat(selectedRecord.laborCost || "0").toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Mıhlama</p>
+                    <p className="font-mono font-medium">
+                      {parseFloat(selectedRecord.totalSettingCost || "0").toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Taş Maliyeti</p>
+                    <p className="font-mono font-medium">
+                      {parseFloat(selectedRecord.totalStoneCost || "0").toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                    </p>
+                  </div>
+                </div>
+                <div className="pt-3 border-t flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Toplam Maliyet</p>
+                    <p className="font-mono font-bold text-lg">
+                      {parseFloat(selectedRecord.totalCost || "0").toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Kâr / Zarar</p>
+                    <p className={`font-mono font-bold text-lg ${parseFloat(selectedRecord.profitLoss || "0") >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                      {parseFloat(selectedRecord.profitLoss || "0") >= 0 ? '+' : ''}{parseFloat(selectedRecord.profitLoss || "0").toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                    </p>
+                  </div>
+                </div>
+                {(selectedRecord.goldPriceUsed || selectedRecord.usdTryUsed) && (
+                  <div className="text-xs text-muted-foreground pt-2">
+                    Kayıt anındaki kurlar: 1 USD = {parseFloat(selectedRecord.usdTryUsed || "0").toFixed(4)} TL | Altın = {parseFloat(selectedRecord.goldPriceUsed || "0").toFixed(2)} TL/gr
+                  </div>
+                )}
               </div>
 
               {selectedRecord.stones && selectedRecord.stones.length > 0 && (
@@ -822,6 +1021,7 @@ export default function AnalysisPage() {
                     <TableHead>Gram</TableHead>
                     <TableHead>Taş Sayısı</TableHead>
                     <TableHead>Toplam Maliyet</TableHead>
+                    <TableHead>Kâr/Zarar</TableHead>
                     <TableHead className="text-right">İşlemler</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -854,7 +1054,14 @@ export default function AnalysisPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="font-mono font-medium">
-                          ${parseFloat(record.totalCost || "0").toFixed(2)}
+                          {parseFloat(record.totalCost || "0").toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                        </TableCell>
+                        <TableCell>
+                          {record.profitLoss && (
+                            <span className={`font-mono font-medium ${parseFloat(record.profitLoss) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                              {parseFloat(record.profitLoss) >= 0 ? '+' : ''}{parseFloat(record.profitLoss).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
@@ -907,7 +1114,7 @@ export default function AnalysisPage() {
                       </TableRow>
                       {expandedRows.has(record.id) && record.stones && record.stones.length > 0 && (
                         <TableRow className="bg-muted/30">
-                          <TableCell colSpan={7} className="p-4">
+                          <TableCell colSpan={8} className="p-4">
                             <div className="rounded-md border bg-background">
                               <Table>
                                 <TableHeader>
