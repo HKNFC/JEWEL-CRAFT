@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Pencil, Trash2, FileText, Search, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, FileText, Search, Eye, ChevronDown, ChevronUp, Pencil, X, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -25,7 +24,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
 import {
   Table,
@@ -53,13 +51,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { Slider } from "@/components/ui/slider";
-import type { AnalysisRecordWithRelations, Manufacturer, StoneSettingRate, GemstonePriceList, AnalysisStone } from "@shared/schema";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import type { AnalysisRecordWithRelations, Manufacturer, StoneSettingRate, GemstonePriceList } from "@shared/schema";
 
 const analysisFormSchema = z.object({
   manufacturerId: z.string().min(1, "Üretici seçiniz"),
@@ -72,18 +67,7 @@ const analysisFormSchema = z.object({
   certificateAmount: z.string().optional(),
 });
 
-const stoneFormSchema = z.object({
-  stoneType: z.string().min(1, "Taş türü gerekli"),
-  caratSize: z.string().min(1, "Karat boyutu gerekli"),
-  quantity: z.string().min(1, "Adet gerekli"),
-  shape: z.string().optional(),
-  color: z.string().optional(),
-  clarity: z.string().optional(),
-  discountPercent: z.string().optional(),
-});
-
 type AnalysisFormValues = z.infer<typeof analysisFormSchema>;
-type StoneFormValues = z.infer<typeof stoneFormSchema>;
 
 const DIAMOND_SHAPES = ["Round", "Princess", "Cushion", "Oval", "Emerald", "Pear", "Marquise", "Radiant", "Asscher", "Heart"];
 const DIAMOND_COLORS = ["D", "E", "F", "G", "H", "I", "J", "K", "L", "M"];
@@ -105,15 +89,16 @@ interface StoneEntry {
 
 export default function AnalysisPage() {
   const { toast } = useToast();
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedManufacturer, setSelectedManufacturer] = useState<string>("");
+  const [showForm, setShowForm] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [stones, setStones] = useState<StoneEntry[]>([]);
-  const [stoneDialogOpen, setStoneDialogOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<AnalysisRecordWithRelations | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [fireValue, setFireValue] = useState([0]);
+  const [polishEnabled, setPolishEnabled] = useState(false);
 
   const { data: analysisRecords, isLoading } = useQuery<AnalysisRecordWithRelations[]>({
     queryKey: ["/api/analysis-records"],
@@ -145,18 +130,12 @@ export default function AnalysisPage() {
     },
   });
 
-  const stoneForm = useForm<StoneFormValues>({
-    resolver: zodResolver(stoneFormSchema),
-    defaultValues: {
-      stoneType: "",
-      caratSize: "",
-      quantity: "1",
-      shape: "",
-      color: "",
-      clarity: "",
-      discountPercent: "",
-    },
-  });
+  useEffect(() => {
+    if (selectedManufacturer) {
+      form.setValue("manufacturerId", selectedManufacturer);
+      setShowForm(true);
+    }
+  }, [selectedManufacturer, form]);
 
   const lookupRapaportPrice = async (shape: string, carat: number, color: string, clarity: string): Promise<number | null> => {
     try {
@@ -171,16 +150,20 @@ export default function AnalysisPage() {
     }
   };
 
+  const getSettingCost = (caratSize: number, quantity: number): number => {
+    const settingRate = stoneRates?.find(r => 
+      caratSize >= parseFloat(r.minCarat) && caratSize <= parseFloat(r.maxCarat)
+    );
+    return settingRate ? parseFloat(settingRate.pricePerStone) * quantity : 0;
+  };
+
   const createMutation = useMutation({
     mutationFn: (data: { record: AnalysisFormValues; stones: StoneEntry[] }) => 
       apiRequest("POST", "/api/analysis-records", { ...data.record, stones: data.stones }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/analysis-records"] });
       toast({ title: "Analiz kaydı oluşturuldu" });
-      setDialogOpen(false);
-      form.reset();
-      setStones([]);
-      setFireValue([0]);
+      resetForm();
     },
     onError: () => {
       toast({ title: "Hata oluştu", variant: "destructive" });
@@ -193,11 +176,7 @@ export default function AnalysisPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/analysis-records"] });
       toast({ title: "Analiz kaydı güncellendi" });
-      setDialogOpen(false);
-      setEditingId(null);
-      form.reset();
-      setStones([]);
-      setFireValue([0]);
+      resetForm();
     },
     onError: () => {
       toast({ title: "Hata oluştu", variant: "destructive" });
@@ -216,6 +195,16 @@ export default function AnalysisPage() {
     },
   });
 
+  const resetForm = () => {
+    setSelectedManufacturer("");
+    setShowForm(false);
+    setEditingId(null);
+    form.reset();
+    setStones([]);
+    setFireValue([0]);
+    setPolishEnabled(false);
+  };
+
   const onSubmit = (data: AnalysisFormValues) => {
     const formData = { ...data, firePercentage: fireValue[0].toString() };
     if (editingId) {
@@ -225,61 +214,69 @@ export default function AnalysisPage() {
     }
   };
 
-  const addStone = async (data: StoneFormValues) => {
-    const gemstone = gemstonePrices?.find(g => g.stoneType === data.stoneType);
-    const caratSize = parseFloat(data.caratSize);
-    const settingRate = stoneRates?.find(r => 
-      caratSize >= parseFloat(r.minCarat) && caratSize <= parseFloat(r.maxCarat)
-    );
-
-    const settingCost = settingRate ? parseFloat(settingRate.pricePerStone) * parseInt(data.quantity) : 0;
-    const discountPercent = data.discountPercent ? parseFloat(data.discountPercent) : 0;
-    
-    let pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
-    let rapaportPrice: number | undefined = undefined;
-    let totalStoneCost = 0;
-
-    const isDiamond = data.stoneType.toLowerCase().includes("elmas") || 
-                      data.stoneType.toLowerCase().includes("diamond") ||
-                      data.stoneType.toLowerCase().includes("pırlanta");
-
-    if (isDiamond && data.shape && data.color && data.clarity) {
-      const rapPrice = await lookupRapaportPrice(data.shape, caratSize, data.color, data.clarity);
-      if (rapPrice) {
-        rapaportPrice = rapPrice;
-        const discountedPrice = rapPrice * (1 - discountPercent / 100);
-        totalStoneCost = (discountedPrice * caratSize * parseInt(data.quantity)) + settingCost;
-      } else {
-        totalStoneCost = (pricePerCarat * caratSize * parseInt(data.quantity)) + settingCost;
-        toast({ title: "Rapaport fiyatı bulunamadı, standart fiyat kullanıldı", variant: "default" });
-      }
-    } else {
-      totalStoneCost = (pricePerCarat * caratSize * parseInt(data.quantity)) + settingCost;
-    }
-
+  const addNewStoneRow = () => {
     setStones([...stones, {
-      stoneType: data.stoneType,
-      caratSize: data.caratSize,
-      quantity: parseInt(data.quantity),
-      pricePerCarat,
-      settingCost,
-      totalStoneCost,
-      shape: data.shape || undefined,
-      color: data.color || undefined,
-      clarity: data.clarity || undefined,
-      rapaportPrice,
-      discountPercent: discountPercent || undefined,
+      stoneType: "",
+      caratSize: "",
+      quantity: 1,
+      pricePerCarat: 0,
+      settingCost: 0,
+      totalStoneCost: 0,
     }]);
-    stoneForm.reset();
-    setStoneDialogOpen(false);
+  };
+
+  const updateStone = async (index: number, field: keyof StoneEntry, value: string | number) => {
+    const newStones = [...stones];
+    const stone = { ...newStones[index] };
+    
+    if (field === "quantity") {
+      stone.quantity = typeof value === "string" ? parseInt(value) || 1 : value;
+    } else if (field === "discountPercent") {
+      stone.discountPercent = typeof value === "string" ? parseFloat(value) || 0 : value;
+    } else {
+      (stone as any)[field] = value;
+    }
+    
+    if (stone.stoneType && stone.caratSize) {
+      const caratSize = parseFloat(stone.caratSize);
+      const quantity = stone.quantity || 1;
+      
+      stone.settingCost = getSettingCost(caratSize, quantity);
+      
+      const isDiamond = stone.stoneType.toLowerCase().includes("elmas") || 
+                        stone.stoneType.toLowerCase().includes("diamond") ||
+                        stone.stoneType.toLowerCase().includes("pırlanta");
+      
+      if (isDiamond && stone.shape && stone.color && stone.clarity) {
+        const rapPrice = await lookupRapaportPrice(stone.shape, caratSize, stone.color, stone.clarity);
+        if (rapPrice) {
+          stone.rapaportPrice = rapPrice;
+          const discountPercent = stone.discountPercent || 0;
+          const discountedPrice = rapPrice * (1 - discountPercent / 100);
+          stone.totalStoneCost = (discountedPrice * caratSize * quantity) + stone.settingCost;
+        } else {
+          const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
+          stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
+          stone.totalStoneCost = (stone.pricePerCarat * caratSize * quantity) + stone.settingCost;
+        }
+      } else {
+        const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
+        stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
+        stone.totalStoneCost = (stone.pricePerCarat * caratSize * quantity) + stone.settingCost;
+      }
+    }
+    
+    newStones[index] = stone;
+    setStones(newStones);
   };
 
   const removeStone = (index: number) => {
     setStones(stones.filter((_, i) => i !== index));
   };
 
-  const openEditDialog = (record: AnalysisRecordWithRelations) => {
+  const openEditRecord = (record: AnalysisRecordWithRelations) => {
     setEditingId(record.id);
+    setSelectedManufacturer(record.manufacturerId?.toString() || "");
     form.reset({
       manufacturerId: record.manufacturerId?.toString() || "",
       productCode: record.productCode,
@@ -291,6 +288,7 @@ export default function AnalysisPage() {
       certificateAmount: record.certificateAmount || "",
     });
     setFireValue([parseFloat(record.firePercentage || "0")]);
+    setPolishEnabled(!!record.polishAmount && parseFloat(record.polishAmount) > 0);
     setStones(record.stones?.map(s => ({
       stoneType: s.stoneType,
       caratSize: s.caratSize,
@@ -304,15 +302,7 @@ export default function AnalysisPage() {
       rapaportPrice: s.rapaportPrice ? parseFloat(s.rapaportPrice) : undefined,
       discountPercent: s.discountPercent ? parseFloat(s.discountPercent) : undefined,
     })) || []);
-    setDialogOpen(true);
-  };
-
-  const openNewDialog = () => {
-    setEditingId(null);
-    form.reset();
-    setStones([]);
-    setFireValue([0]);
-    setDialogOpen(true);
+    setShowForm(true);
   };
 
   const viewRecord = (record: AnalysisRecordWithRelations) => {
@@ -336,441 +326,331 @@ export default function AnalysisPage() {
   );
 
   const totalStoneCost = stones.reduce((sum, s) => sum + (s.totalStoneCost || 0), 0);
-
   const stoneTypes = gemstonePrices?.map(g => g.stoneType).filter((v, i, a) => a.indexOf(v) === i) || [];
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-analysis-title">Analiz Kayıtları</h1>
+          <h1 className="text-2xl font-semibold" data-testid="text-analysis-title">Maliyet Analizi</h1>
           <p className="text-muted-foreground">Mücevher maliyet analizi yapın</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openNewDialog} data-testid="button-add-analysis">
-              <Plus className="h-4 w-4 mr-2" />
-              Yeni Analiz
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingId ? "Analizi Düzenle" : "Yeni Maliyet Analizi"}
-              </DialogTitle>
-            </DialogHeader>
+      </div>
+
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">Yeni Analiz</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="flex-1 min-w-[200px]">
+              <Label className="mb-2 block">Üretici Seçin</Label>
+              <Select 
+                value={selectedManufacturer} 
+                onValueChange={(value) => {
+                  setSelectedManufacturer(value);
+                  if (!showForm) {
+                    setEditingId(null);
+                    form.reset();
+                    setStones([]);
+                    setFireValue([0]);
+                  }
+                }}
+              >
+                <SelectTrigger data-testid="select-manufacturer-main" className="w-full">
+                  <SelectValue placeholder="Üretici seçin..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {manufacturers?.map((m) => (
+                    <SelectItem key={m.id} value={m.id.toString()}>
+                      {m.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {showForm && (
+              <Button variant="ghost" size="icon" onClick={resetForm} data-testid="button-close-form">
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+
+          {showForm && (
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="font-medium text-sm text-muted-foreground">Temel Bilgiler</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="manufacturerId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Üretici *</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-manufacturer">
-                                <SelectValue placeholder="Üretici seçin" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {manufacturers?.map((m) => (
-                                <SelectItem key={m.id} value={m.id.toString()}>
-                                  {m.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="productCode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Ürün Kodu *</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="ABC-123" 
-                              {...field} 
-                              data-testid="input-product-code"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="totalGrams"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Toplam Gram *</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number"
-                              step="0.001"
-                              placeholder="10.500" 
-                              {...field} 
-                              data-testid="input-total-grams"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                      <FormField
-                        control={form.control}
-                        name="goldLaborCost"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Altın İşçiliği</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number"
-                                step="0.01"
-                                placeholder="50.00" 
-                                {...field} 
-                                data-testid="input-gold-labor"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="goldLaborType"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Birim</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger data-testid="select-labor-type">
-                                  <SelectValue />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="dollar">$ (Dolar)</SelectItem>
-                                <SelectItem value="gold">Altın (gr)</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="font-medium text-sm text-muted-foreground">Ek Maliyetler</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 p-4 bg-muted/30 rounded-lg">
                   <FormField
                     control={form.control}
-                    name="firePercentage"
+                    name="productCode"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Fire Oranı: {fireValue[0]}%</FormLabel>
+                        <FormLabel>Ürün Kodu</FormLabel>
                         <FormControl>
-                          <Slider
-                            value={fireValue}
-                            onValueChange={setFireValue}
-                            max={20}
-                            step={0.5}
-                            className="py-2"
-                            data-testid="slider-fire-percentage"
+                          <Input 
+                            placeholder="ABC-123" 
+                            {...field} 
+                            data-testid="input-product-code"
                           />
                         </FormControl>
-                        <FormDescription>Üretim sırasında oluşan fire oranı</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="totalGrams"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Brüt Gram</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number"
+                            step="0.001"
+                            placeholder="10.500" 
+                            {...field} 
+                            data-testid="input-total-grams"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="space-y-2">
                     <FormField
                       control={form.control}
-                      name="polishAmount"
+                      name="goldLaborCost"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Cila Tutarı ($)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number"
-                              step="0.01"
-                              placeholder="0.00" 
-                              {...field} 
-                              data-testid="input-polish"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="certificateAmount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Sertifika Tutarı ($)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number"
-                              step="0.01"
-                              placeholder="0.00" 
-                              {...field} 
-                              data-testid="input-certificate"
-                            />
-                          </FormControl>
+                          <FormLabel>Altın İşçiliği</FormLabel>
+                          <div className="flex gap-1">
+                            <FormControl>
+                              <Input 
+                                type="number"
+                                step="0.01"
+                                placeholder="50" 
+                                {...field} 
+                                className="flex-1"
+                                data-testid="input-gold-labor"
+                              />
+                            </FormControl>
+                            <Select 
+                              value={form.watch("goldLaborType")} 
+                              onValueChange={(v) => form.setValue("goldLaborType", v)}
+                            >
+                              <SelectTrigger className="w-16" data-testid="select-labor-type">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="dollar">$</SelectItem>
+                                <SelectItem value="gold">gr</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
+                  <FormItem>
+                    <FormLabel>Fire: {fireValue[0]}%</FormLabel>
+                    <Slider
+                      value={fireValue}
+                      onValueChange={setFireValue}
+                      max={20}
+                      step={0.5}
+                      className="py-4"
+                      data-testid="slider-fire-percentage"
+                    />
+                  </FormItem>
+                  <FormItem>
+                    <FormLabel>Cila</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <Switch 
+                        checked={polishEnabled} 
+                        onCheckedChange={setPolishEnabled}
+                        data-testid="switch-polish"
+                      />
+                      {polishEnabled && (
+                        <Input 
+                          type="number"
+                          step="0.01"
+                          placeholder="$"
+                          value={form.watch("polishAmount") || ""}
+                          onChange={(e) => form.setValue("polishAmount", e.target.value)}
+                          className="w-20"
+                          data-testid="input-polish"
+                        />
+                      )}
+                    </div>
+                  </FormItem>
+                  <FormField
+                    control={form.control}
+                    name="certificateAmount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sertifika ($)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number"
+                            step="0.01"
+                            placeholder="0" 
+                            {...field} 
+                            data-testid="input-certificate"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-sm text-muted-foreground">Taşlar</h3>
-                    <Dialog open={stoneDialogOpen} onOpenChange={setStoneDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button type="button" size="sm" variant="outline" data-testid="button-add-stone">
-                          <Plus className="h-4 w-4 mr-1" />
-                          Taş Ekle
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Taş Ekle</DialogTitle>
-                        </DialogHeader>
-                        <Form {...stoneForm}>
-                          <form onSubmit={stoneForm.handleSubmit(addStone)} className="space-y-4">
-                            <FormField
-                              control={stoneForm.control}
-                              name="stoneType"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Taş Türü *</FormLabel>
-                                  <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl>
-                                      <SelectTrigger data-testid="select-add-stone-type">
-                                        <SelectValue placeholder="Taş türü seçin" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      {stoneTypes.map((type) => (
-                                        <SelectItem key={type} value={type}>
-                                          {type}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <div className="grid grid-cols-2 gap-4">
-                              <FormField
-                                control={stoneForm.control}
-                                name="caratSize"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Karat Boyutu *</FormLabel>
-                                    <FormControl>
-                                      <Input 
-                                        type="number"
-                                        step="0.0001"
-                                        placeholder="0.05" 
-                                        {...field} 
-                                        data-testid="input-stone-carat"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={stoneForm.control}
-                                name="quantity"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Adet *</FormLabel>
-                                    <FormControl>
-                                      <Input 
-                                        type="number"
-                                        min="1"
-                                        placeholder="1" 
-                                        {...field} 
-                                        data-testid="input-stone-quantity"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-
-                            <div className="border-t pt-4 mt-2">
-                              <p className="text-sm text-muted-foreground mb-3">Pırlanta/Elmas için Rapaport Fiyatlandırma</p>
-                              <div className="grid grid-cols-3 gap-3">
-                                <FormField
-                                  control={stoneForm.control}
-                                  name="shape"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Kesim</FormLabel>
-                                      <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl>
-                                          <SelectTrigger data-testid="select-stone-shape">
-                                            <SelectValue placeholder="Seçin" />
-                                          </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                          {DIAMOND_SHAPES.map((shape) => (
-                                            <SelectItem key={shape} value={shape}>
-                                              {shape}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <FormField
-                                  control={stoneForm.control}
-                                  name="color"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Renk</FormLabel>
-                                      <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl>
-                                          <SelectTrigger data-testid="select-stone-color">
-                                            <SelectValue placeholder="Seçin" />
-                                          </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                          {DIAMOND_COLORS.map((color) => (
-                                            <SelectItem key={color} value={color}>
-                                              {color}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <FormField
-                                  control={stoneForm.control}
-                                  name="clarity"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Berraklık</FormLabel>
-                                      <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl>
-                                          <SelectTrigger data-testid="select-stone-clarity">
-                                            <SelectValue placeholder="Seçin" />
-                                          </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                          {DIAMOND_CLARITIES.map((clarity) => (
-                                            <SelectItem key={clarity} value={clarity}>
-                                              {clarity}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-                              <div className="mt-3">
-                                <FormField
-                                  control={stoneForm.control}
-                                  name="discountPercent"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>İskonto Oranı (%)</FormLabel>
-                                      <FormControl>
-                                        <Input 
-                                          type="number"
-                                          step="0.1"
-                                          min="0"
-                                          max="100"
-                                          placeholder="0" 
-                                          {...field} 
-                                          data-testid="input-stone-discount"
-                                        />
-                                      </FormControl>
-                                      <FormDescription>Rapaport fiyatından uygulanacak iskonto</FormDescription>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-                            </div>
-
-                            <div className="flex justify-end gap-2">
-                              <Button type="button" variant="outline" onClick={() => setStoneDialogOpen(false)}>
-                                İptal
-                              </Button>
-                              <Button type="submit" data-testid="button-confirm-add-stone">
-                                Ekle
-                              </Button>
-                            </div>
-                          </form>
-                        </Form>
-                      </DialogContent>
-                    </Dialog>
+                    <h3 className="font-medium">Taşlar</h3>
+                    <Button 
+                      type="button" 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={addNewStoneRow}
+                      data-testid="button-add-stone"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Taş Ekle
+                    </Button>
                   </div>
 
                   {stones.length > 0 ? (
-                    <div className="rounded-md border">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Taş</TableHead>
-                            <TableHead>Karat</TableHead>
-                            <TableHead>Adet</TableHead>
-                            <TableHead>Rapaport</TableHead>
-                            <TableHead>İskonto</TableHead>
-                            <TableHead>Maliyet</TableHead>
-                            <TableHead></TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {stones.map((stone, index) => (
-                            <TableRow key={index}>
-                              <TableCell>
-                                <div>{stone.stoneType}</div>
-                                {stone.shape && (
-                                  <div className="text-xs text-muted-foreground">
-                                    {stone.shape} {stone.color}/{stone.clarity}
+                    <div className="space-y-3">
+                      {stones.map((stone, index) => {
+                        const isDiamond = stone.stoneType?.toLowerCase().includes("elmas") || 
+                                          stone.stoneType?.toLowerCase().includes("diamond") ||
+                                          stone.stoneType?.toLowerCase().includes("pırlanta");
+                        
+                        return (
+                          <div key={index} className="p-4 border rounded-lg bg-background space-y-3">
+                            <div className="flex items-start gap-4 flex-wrap">
+                              <div className="min-w-[150px]">
+                                <Label className="text-xs text-muted-foreground">Taş Türü</Label>
+                                <Select 
+                                  value={stone.stoneType} 
+                                  onValueChange={(v) => updateStone(index, "stoneType", v)}
+                                >
+                                  <SelectTrigger data-testid={`select-stone-type-${index}`}>
+                                    <SelectValue placeholder="Seçin" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {stoneTypes.map((type) => (
+                                      <SelectItem key={type} value={type}>
+                                        {type}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="w-24">
+                                <Label className="text-xs text-muted-foreground">Karat</Label>
+                                <Input 
+                                  type="number"
+                                  step="0.0001"
+                                  placeholder="0.05"
+                                  value={stone.caratSize}
+                                  onChange={(e) => updateStone(index, "caratSize", e.target.value)}
+                                  data-testid={`input-stone-carat-${index}`}
+                                />
+                              </div>
+                              <div className="w-20">
+                                <Label className="text-xs text-muted-foreground">Adet</Label>
+                                <Input 
+                                  type="number"
+                                  min="1"
+                                  value={stone.quantity}
+                                  onChange={(e) => updateStone(index, "quantity", e.target.value)}
+                                  data-testid={`input-stone-quantity-${index}`}
+                                />
+                              </div>
+                              
+                              {isDiamond && (
+                                <>
+                                  <div className="w-28">
+                                    <Label className="text-xs text-muted-foreground">Kesim</Label>
+                                    <Select 
+                                      value={stone.shape || ""} 
+                                      onValueChange={(v) => updateStone(index, "shape", v)}
+                                    >
+                                      <SelectTrigger data-testid={`select-stone-shape-${index}`}>
+                                        <SelectValue placeholder="Seçin" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {DIAMOND_SHAPES.map((shape) => (
+                                          <SelectItem key={shape} value={shape}>
+                                            {shape}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
                                   </div>
-                                )}
-                              </TableCell>
-                              <TableCell className="font-mono">{stone.caratSize} ct</TableCell>
-                              <TableCell>{stone.quantity}</TableCell>
-                              <TableCell className="font-mono text-sm">
-                                {stone.rapaportPrice ? `$${stone.rapaportPrice.toFixed(0)}/ct` : "-"}
-                              </TableCell>
-                              <TableCell className="font-mono text-sm">
-                                {stone.discountPercent ? `${stone.discountPercent}%` : "-"}
-                              </TableCell>
-                              <TableCell className="font-mono font-medium">
-                                ${stone.totalStoneCost?.toFixed(2) || "0.00"}
-                              </TableCell>
-                              <TableCell>
+                                  <div className="w-20">
+                                    <Label className="text-xs text-muted-foreground">Renk</Label>
+                                    <Select 
+                                      value={stone.color || ""} 
+                                      onValueChange={(v) => updateStone(index, "color", v)}
+                                    >
+                                      <SelectTrigger data-testid={`select-stone-color-${index}`}>
+                                        <SelectValue placeholder="Seçin" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {DIAMOND_COLORS.map((color) => (
+                                          <SelectItem key={color} value={color}>
+                                            {color}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div className="w-20">
+                                    <Label className="text-xs text-muted-foreground">Berraklık</Label>
+                                    <Select 
+                                      value={stone.clarity || ""} 
+                                      onValueChange={(v) => updateStone(index, "clarity", v)}
+                                    >
+                                      <SelectTrigger data-testid={`select-stone-clarity-${index}`}>
+                                        <SelectValue placeholder="Seçin" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {DIAMOND_CLARITIES.map((clarity) => (
+                                          <SelectItem key={clarity} value={clarity}>
+                                            {clarity}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div className="w-20">
+                                    <Label className="text-xs text-muted-foreground">İskonto %</Label>
+                                    <Input 
+                                      type="number"
+                                      step="0.1"
+                                      min="0"
+                                      max="100"
+                                      placeholder="0"
+                                      value={stone.discountPercent || ""}
+                                      onChange={(e) => updateStone(index, "discountPercent", e.target.value)}
+                                      data-testid={`input-stone-discount-${index}`}
+                                    />
+                                  </div>
+                                </>
+                              )}
+                              
+                              <div className="flex-1 flex items-end justify-end gap-4">
+                                <div className="text-right">
+                                  <Label className="text-xs text-muted-foreground">Mıhlama</Label>
+                                  <div className="font-mono text-sm">${stone.settingCost?.toFixed(2) || "0.00"}</div>
+                                </div>
+                                <div className="text-right">
+                                  <Label className="text-xs text-muted-foreground">Toplam</Label>
+                                  <div className="font-mono font-medium">${stone.totalStoneCost?.toFixed(2) || "0.00"}</div>
+                                </div>
                                 <Button
                                   type="button"
                                   size="icon"
@@ -780,27 +660,32 @@ export default function AnalysisPage() {
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                      <div className="p-3 bg-muted/50 text-right font-medium">
-                        Toplam Taş Maliyeti: ${totalStoneCost.toFixed(2)}
+                              </div>
+                            </div>
+                            {isDiamond && stone.rapaportPrice && (
+                              <div className="text-xs text-muted-foreground">
+                                Rapaport: ${stone.rapaportPrice.toFixed(0)}/ct
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      <div className="flex justify-end p-3 bg-muted/50 rounded-lg">
+                        <span className="font-medium">Toplam Taş Maliyeti: ${totalStoneCost.toFixed(2)}</span>
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-muted-foreground text-sm border rounded-md border-dashed">
-                      Henüz taş eklenmedi
+                    <div className="text-center py-6 text-muted-foreground text-sm border rounded-lg border-dashed">
+                      Henüz taş eklenmedi. Taş eklemek için yukarıdaki butonu kullanın.
                     </div>
                   )}
                 </div>
 
-                <div className="flex justify-end gap-2 pt-4">
+                <div className="flex justify-end gap-2 pt-4 border-t">
                   <Button 
                     type="button" 
                     variant="outline" 
-                    onClick={() => setDialogOpen(false)}
+                    onClick={resetForm}
                     data-testid="button-cancel-analysis"
                   >
                     İptal
@@ -810,14 +695,15 @@ export default function AnalysisPage() {
                     disabled={createMutation.isPending || updateMutation.isPending}
                     data-testid="button-save-analysis"
                   >
-                    {(createMutation.isPending || updateMutation.isPending) ? "Kaydediliyor..." : "Kaydet"}
+                    <Save className="h-4 w-4 mr-2" />
+                    {(createMutation.isPending || updateMutation.isPending) ? "Kaydediliyor..." : (editingId ? "Güncelle" : "Kaydet")}
                   </Button>
                 </div>
               </form>
             </Form>
-          </DialogContent>
-        </Dialog>
-      </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="max-w-2xl">
@@ -906,7 +792,8 @@ export default function AnalysisPage() {
 
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
+          <CardTitle className="text-lg">Kayıtlı Analizler</CardTitle>
+          <div className="flex items-center gap-2 mt-2">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Ürün kodu veya üretici ara..."
@@ -982,7 +869,7 @@ export default function AnalysisPage() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              onClick={() => openEditDialog(record)}
+                              onClick={() => openEditRecord(record)}
                               data-testid={`button-edit-analysis-${record.id}`}
                             >
                               <Pencil className="h-4 w-4" />
@@ -1062,7 +949,7 @@ export default function AnalysisPage() {
               <p className="text-sm text-muted-foreground text-center">
                 {searchQuery 
                   ? "Arama kriterlerine uygun kayıt yok" 
-                  : "Henüz analiz kaydı oluşturulmamış. Yeni analiz ekleyerek başlayın."}
+                  : "Henüz analiz kaydı oluşturulmamış. Yukarıdan yeni analiz ekleyerek başlayın."}
               </p>
             </div>
           )}
