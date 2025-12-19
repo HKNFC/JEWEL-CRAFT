@@ -35,7 +35,7 @@ export default function RapaportPage() {
 
   const uploadMutation = useMutation({
     mutationFn: (data: { prices: any[]; clearExisting: boolean }) =>
-      apiRequest("/api/rapaport-prices/upload", "POST", data),
+      apiRequest("POST", "/api/rapaport-prices/upload", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/rapaport-prices"] });
       toast({ title: "Yuklendi", description: "Rapaport fiyatlari kaydedildi" });
@@ -46,7 +46,7 @@ export default function RapaportPage() {
   });
 
   const clearMutation = useMutation({
-    mutationFn: () => apiRequest("/api/rapaport-prices", "DELETE"),
+    mutationFn: () => apiRequest("DELETE", "/api/rapaport-prices"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/rapaport-prices"] });
       toast({ title: "Temizlendi", description: "Tum Rapaport fiyatlari silindi" });
