@@ -54,6 +54,7 @@ export interface IStorage {
   createExchangeRate(data: InsertExchangeRate): Promise<ExchangeRate>;
   
   getRapaportPrices(): Promise<RapaportPrice[]>;
+  createRapaportPrice(data: InsertRapaportPrice): Promise<RapaportPrice>;
   createRapaportPrices(data: InsertRapaportPrice[]): Promise<RapaportPrice[]>;
   clearRapaportPrices(): Promise<void>;
   findRapaportPrice(shape: string, carat: number, color: string, clarity: string): Promise<RapaportPrice | undefined>;
@@ -262,6 +263,11 @@ export class DatabaseStorage implements IStorage {
 
   async getRapaportPrices(): Promise<RapaportPrice[]> {
     return db.select().from(rapaportPrices);
+  }
+
+  async createRapaportPrice(data: InsertRapaportPrice): Promise<RapaportPrice> {
+    const [price] = await db.insert(rapaportPrices).values(data).returning();
+    return price;
   }
 
   async createRapaportPrices(data: InsertRapaportPrice[]): Promise<RapaportPrice[]> {

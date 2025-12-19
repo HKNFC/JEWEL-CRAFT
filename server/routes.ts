@@ -346,6 +346,25 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/rapaport-prices", async (req, res) => {
+    try {
+      const { shape, lowCarat, highCarat, color, clarity, price } = req.body;
+      const priceData = {
+        shape,
+        lowCarat: lowCarat?.toString(),
+        highCarat: highCarat?.toString(),
+        color,
+        clarity,
+        pricePerCarat: price?.toString(),
+      };
+      const saved = await storage.createRapaportPrice(priceData);
+      res.status(201).json(saved);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to save Rapaport price" });
+    }
+  });
+
   app.post("/api/rapaport-prices/upload", async (req, res) => {
     try {
       const { prices, clearExisting } = req.body;
