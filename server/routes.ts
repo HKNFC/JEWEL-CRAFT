@@ -223,9 +223,23 @@ export async function registerRoutes(
   app.post("/api/analysis-records", async (req, res) => {
     try {
       const { stones, ...recordData } = req.body;
+      const toNullIfEmpty = (val: any) => (val === "" || val === undefined) ? null : val;
       const parsed = insertAnalysisRecordSchema.safeParse({
         ...recordData,
         manufacturerId: recordData.manufacturerId ? parseInt(recordData.manufacturerId) : null,
+        goldLaborCost: toNullIfEmpty(recordData.goldLaborCost),
+        firePercentage: toNullIfEmpty(recordData.firePercentage),
+        polishAmount: toNullIfEmpty(recordData.polishAmount),
+        certificateAmount: toNullIfEmpty(recordData.certificateAmount),
+        manufacturerPrice: toNullIfEmpty(recordData.manufacturerPrice),
+        rawMaterialCost: toNullIfEmpty(recordData.rawMaterialCost),
+        laborCost: toNullIfEmpty(recordData.laborCost),
+        totalSettingCost: toNullIfEmpty(recordData.totalSettingCost),
+        totalStoneCost: toNullIfEmpty(recordData.totalStoneCost),
+        totalCost: toNullIfEmpty(recordData.totalCost),
+        profitLoss: toNullIfEmpty(recordData.profitLoss),
+        goldPriceUsed: toNullIfEmpty(recordData.goldPriceUsed),
+        usdTryUsed: toNullIfEmpty(recordData.usdTryUsed),
       });
       if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.issues });
@@ -255,6 +269,7 @@ export async function registerRoutes(
     try {
       const id = parseInt(req.params.id);
       const { stones, ...recordData } = req.body;
+      const toNullIfEmpty = (val: any) => (val === "" || val === undefined) ? null : val;
       const formattedStones = stones ? stones.map((stone: any) => ({
         stoneType: stone.stoneType,
         caratSize: stone.caratSize?.toString(),
@@ -271,6 +286,19 @@ export async function registerRoutes(
       const record = await storage.updateAnalysisRecord(id, {
         ...recordData,
         manufacturerId: recordData.manufacturerId ? parseInt(recordData.manufacturerId) : null,
+        goldLaborCost: toNullIfEmpty(recordData.goldLaborCost),
+        firePercentage: toNullIfEmpty(recordData.firePercentage),
+        polishAmount: toNullIfEmpty(recordData.polishAmount),
+        certificateAmount: toNullIfEmpty(recordData.certificateAmount),
+        manufacturerPrice: toNullIfEmpty(recordData.manufacturerPrice),
+        rawMaterialCost: toNullIfEmpty(recordData.rawMaterialCost),
+        laborCost: toNullIfEmpty(recordData.laborCost),
+        totalSettingCost: toNullIfEmpty(recordData.totalSettingCost),
+        totalStoneCost: toNullIfEmpty(recordData.totalStoneCost),
+        totalCost: toNullIfEmpty(recordData.totalCost),
+        profitLoss: toNullIfEmpty(recordData.profitLoss),
+        goldPriceUsed: toNullIfEmpty(recordData.goldPriceUsed),
+        usdTryUsed: toNullIfEmpty(recordData.usdTryUsed),
       }, formattedStones);
       if (!record) {
         return res.status(404).json({ error: "Record not found" });
