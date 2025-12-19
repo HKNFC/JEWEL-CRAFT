@@ -12,6 +12,8 @@ import ManufacturersPage from "@/pages/manufacturers";
 import StoneRatesPage from "@/pages/stone-rates";
 import GemstonePricesPage from "@/pages/gemstone-prices";
 import AnalysisPage from "@/pages/analysis";
+import ExchangeRatesPage from "@/pages/exchange-rates";
+import RapaportPage from "@/pages/rapaport";
 
 function Router() {
   return (
@@ -21,6 +23,8 @@ function Router() {
       <Route path="/stone-rates" component={StoneRatesPage} />
       <Route path="/gemstone-prices" component={GemstonePricesPage} />
       <Route path="/analysis" component={AnalysisPage} />
+      <Route path="/exchange-rates" component={ExchangeRatesPage} />
+      <Route path="/rapaport" component={RapaportPage} />
       <Route component={NotFound} />
     </Switch>
   );

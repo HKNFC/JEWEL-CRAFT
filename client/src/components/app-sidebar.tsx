@@ -4,7 +4,9 @@ import {
   Factory, 
   Gem, 
   ListOrdered, 
-  FileText 
+  FileText,
+  DollarSign,
+  Diamond
 } from "lucide-react";
 import {
   Sidebar,
@@ -38,6 +40,16 @@ const menuItems = [
     title: "Taş Fiyatları",
     url: "/gemstone-prices",
     icon: Gem,
+  },
+  {
+    title: "Döviz/Altın",
+    url: "/exchange-rates",
+    icon: DollarSign,
+  },
+  {
+    title: "Rapaport",
+    url: "/rapaport",
+    icon: Diamond,
   },
   {
     title: "Analiz Kayıtları",
