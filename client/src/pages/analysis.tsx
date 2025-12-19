@@ -156,22 +156,22 @@ export default function AnalysisPage() {
     const certificateAmount = safeNumber(parseFloat(form.watch("certificateAmount") || "0"));
     const manufacturerPrice = safeNumber(parseFloat(form.watch("manufacturerPrice") || "0"));
 
-    const rawMaterialCost = safeNumber(totalGrams * (1 + firePercentage / 100) * goldPricePerGram);
+    const goldPriceUsd = safeNumber(goldPricePerGram / usdTryRate);
+    const rawMaterialCost = safeNumber(totalGrams * (1 + firePercentage / 100) * goldPriceUsd);
 
     let laborCost = 0;
     if (goldLaborType === "gold") {
-      laborCost = safeNumber(goldLaborCost * goldPricePerGram);
+      laborCost = safeNumber(goldLaborCost * goldPriceUsd);
     } else {
-      laborCost = safeNumber(goldLaborCost * usdTryRate);
+      laborCost = safeNumber(goldLaborCost);
     }
-    laborCost += safeNumber((polishAmount * usdTryRate) + (certificateAmount * usdTryRate));
+    laborCost += safeNumber(polishAmount + certificateAmount);
 
-    const totalSettingCost = safeNumber(stones.reduce((sum, s) => sum + (s.settingCost || 0), 0) * usdTryRate);
-    const totalStoneCostValue = safeNumber(stones.reduce((sum, s) => sum + (s.totalStoneCost || 0), 0) * usdTryRate);
+    const totalSettingCost = safeNumber(stones.reduce((sum, s) => sum + (s.settingCost || 0), 0));
+    const totalStoneCostValue = safeNumber(stones.reduce((sum, s) => sum + (s.totalStoneCost || 0), 0));
 
     const totalCost = safeNumber(rawMaterialCost + laborCost + totalSettingCost + totalStoneCostValue);
-    const profitLoss = safeNumber((manufacturerPrice * usdTryRate) - totalCost);
-    const manufacturerPriceTry = safeNumber(manufacturerPrice * usdTryRate);
+    const profitLoss = safeNumber(manufacturerPrice - totalCost);
 
     return {
       rawMaterialCost,
@@ -180,7 +180,7 @@ export default function AnalysisPage() {
       totalStoneCost: totalStoneCostValue,
       totalCost,
       profitLoss,
-      manufacturerPriceTry,
+      manufacturerPriceUsd: manufacturerPrice,
     };
   };
 
@@ -776,12 +776,12 @@ export default function AnalysisPage() {
                 </div>
 
                 <div className="p-4 bg-muted/30 rounded-lg space-y-3">
-                  <h3 className="font-medium text-lg">Maliyet Özeti</h3>
+                  <h3 className="font-medium text-lg">Maliyet Özeti (USD)</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                       <p className="text-xs text-muted-foreground">Hammadde</p>
                       <p className="font-mono font-medium" data-testid="text-raw-material-cost">
-                        {costs.rawMaterialCost.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                        ${costs.rawMaterialCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         ({form.watch("totalGrams") || "0"} gr x {(1 + fireValue[0] / 100).toFixed(3)})
@@ -790,19 +790,19 @@ export default function AnalysisPage() {
                     <div>
                       <p className="text-xs text-muted-foreground">İşçilik</p>
                       <p className="font-mono font-medium" data-testid="text-labor-cost">
-                        {costs.laborCost.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                        ${costs.laborCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Mıhlama</p>
                       <p className="font-mono font-medium" data-testid="text-setting-cost">
-                        {costs.totalSettingCost.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                        ${costs.totalSettingCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Taş Maliyeti</p>
                       <p className="font-mono font-medium" data-testid="text-stone-cost">
-                        {costs.totalStoneCost.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                        ${costs.totalStoneCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     </div>
                   </div>
@@ -810,13 +810,13 @@ export default function AnalysisPage() {
                     <div>
                       <p className="text-sm text-muted-foreground">Toplam Maliyet</p>
                       <p className="font-mono font-bold text-xl" data-testid="text-total-cost">
-                        {costs.totalCost.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                        ${costs.totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Üretici Fiyatı</p>
-                      <p className="font-mono font-bold text-xl" data-testid="text-manufacturer-price-try">
-                        {costs.manufacturerPriceTry.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                      <p className="font-mono font-bold text-xl" data-testid="text-manufacturer-price-usd">
+                        ${costs.manufacturerPriceUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     </div>
                     <div>
@@ -825,12 +825,12 @@ export default function AnalysisPage() {
                         className={`font-mono font-bold text-xl ${costs.profitLoss >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
                         data-testid="text-profit-loss"
                       >
-                        {costs.profitLoss >= 0 ? '+' : ''}{costs.profitLoss.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                        {costs.profitLoss >= 0 ? '+$' : '-$'}{Math.abs(costs.profitLoss).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     </div>
                   </div>
                   <div className="text-xs text-muted-foreground pt-2">
-                    Kurlar: 1 USD = {usdTryRate.toFixed(4)} TL | Altın = {goldPricePerGram.toFixed(2)} TL/gr
+                    Kurlar: 1 USD = {usdTryRate.toFixed(4)} TL | Altın = ${(goldPricePerGram / usdTryRate).toFixed(2)}/gr
                   </div>
                 </div>
 
@@ -904,30 +904,30 @@ export default function AnalysisPage() {
               </div>
 
               <div className="p-4 bg-muted/30 rounded-lg space-y-3">
-                <h4 className="font-medium">Maliyet Dağılımı</h4>
+                <h4 className="font-medium">Maliyet Dağılımı (USD)</h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <p className="text-xs text-muted-foreground">Hammadde</p>
                     <p className="font-mono font-medium">
-                      {parseFloat(selectedRecord.rawMaterialCost || "0").toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                      ${parseFloat(selectedRecord.rawMaterialCost || "0").toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">İşçilik</p>
                     <p className="font-mono font-medium">
-                      {parseFloat(selectedRecord.laborCost || "0").toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                      ${parseFloat(selectedRecord.laborCost || "0").toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Mıhlama</p>
                     <p className="font-mono font-medium">
-                      {parseFloat(selectedRecord.totalSettingCost || "0").toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                      ${parseFloat(selectedRecord.totalSettingCost || "0").toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Taş Maliyeti</p>
                     <p className="font-mono font-medium">
-                      {parseFloat(selectedRecord.totalStoneCost || "0").toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                      ${parseFloat(selectedRecord.totalStoneCost || "0").toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                 </div>
@@ -935,19 +935,19 @@ export default function AnalysisPage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Toplam Maliyet</p>
                     <p className="font-mono font-bold text-lg">
-                      {parseFloat(selectedRecord.totalCost || "0").toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                      ${parseFloat(selectedRecord.totalCost || "0").toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Kâr / Zarar</p>
                     <p className={`font-mono font-bold text-lg ${parseFloat(selectedRecord.profitLoss || "0") >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                      {parseFloat(selectedRecord.profitLoss || "0") >= 0 ? '+' : ''}{parseFloat(selectedRecord.profitLoss || "0").toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                      {parseFloat(selectedRecord.profitLoss || "0") >= 0 ? '+$' : '-$'}{Math.abs(parseFloat(selectedRecord.profitLoss || "0")).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                 </div>
                 {(selectedRecord.goldPriceUsed || selectedRecord.usdTryUsed) && (
                   <div className="text-xs text-muted-foreground pt-2">
-                    Kayıt anındaki kurlar: 1 USD = {parseFloat(selectedRecord.usdTryUsed || "0").toFixed(4)} TL | Altın = {parseFloat(selectedRecord.goldPriceUsed || "0").toFixed(2)} TL/gr
+                    Kayıt anındaki kurlar: 1 USD = {parseFloat(selectedRecord.usdTryUsed || "0").toFixed(4)} TL | Altın = ${(parseFloat(selectedRecord.goldPriceUsed || "0") / parseFloat(selectedRecord.usdTryUsed || "1")).toFixed(2)}/gr
                   </div>
                 )}
               </div>
@@ -1057,12 +1057,12 @@ export default function AnalysisPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="font-mono font-medium">
-                          {parseFloat(record.totalCost || "0").toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                          ${parseFloat(record.totalCost || "0").toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell>
                           {record.profitLoss && (
                             <span className={`font-mono font-medium ${parseFloat(record.profitLoss) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                              {parseFloat(record.profitLoss) >= 0 ? '+' : ''}{parseFloat(record.profitLoss).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                              {parseFloat(record.profitLoss) >= 0 ? '+$' : '-$'}{Math.abs(parseFloat(record.profitLoss)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           )}
                         </TableCell>
