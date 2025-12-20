@@ -584,7 +584,7 @@ export default function AnalysisPage() {
   const onSubmit = (data: AnalysisFormValues) => {
     const formData = { 
       ...data,
-      batchId: selectedBatch || undefined,
+      batchId: selectedBatch ? parseInt(selectedBatch) : undefined,
       firePercentage: fireValue[0].toString(),
       rawMaterialCost: costs.rawMaterialCost.toFixed(2),
       laborCost: costs.laborCost.toFixed(2),
