@@ -479,6 +479,19 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/batches/:id/details", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const details = await storage.getBatchWithFullDetails(id);
+      if (!details) {
+        return res.status(404).json({ error: "Batch not found" });
+      }
+      res.json(details);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch batch details" });
+    }
+  });
+
   app.post("/api/batches", async (req, res) => {
     try {
       const { manufacturerId } = req.body;

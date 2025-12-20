@@ -66,6 +66,7 @@ export interface IStorage {
   getBatches(): Promise<BatchWithRelations[]>;
   getBatchesByManufacturer(manufacturerId: number): Promise<Batch[]>;
   getBatch(id: number): Promise<BatchWithRelations | undefined>;
+  getBatchWithFullDetails(id: number): Promise<{ batch: BatchWithRelations; records: AnalysisRecordWithRelations[] } | undefined>;
   createBatch(manufacturerId: number): Promise<Batch>;
   deleteBatch(id: number): Promise<boolean>;
   getNextBatchNumber(manufacturerId: number): Promise<number>;
@@ -333,6 +334,25 @@ export class DatabaseStorage implements IStorage {
     const records = await db.select().from(analysisRecords).where(eq(analysisRecords.batchId, batch.id));
     
     return { ...batch, manufacturer, analysisRecords: records };
+  }
+
+  async getBatchWithFullDetails(id: number): Promise<{ batch: BatchWithRelations; records: AnalysisRecordWithRelations[] } | undefined> {
+    const [batch] = await db.select().from(batches).where(eq(batches.id, id));
+    if (!batch) return undefined;
+
+    const manufacturer = await this.getManufacturer(batch.manufacturerId);
+    const batchRecords = await db.select().from(analysisRecords).where(eq(analysisRecords.batchId, batch.id));
+    
+    const recordsWithStones: AnalysisRecordWithRelations[] = [];
+    for (const record of batchRecords) {
+      const stones = await db.select().from(analysisStones).where(eq(analysisStones.analysisRecordId, record.id));
+      recordsWithStones.push({ ...record, manufacturer, stones });
+    }
+    
+    return { 
+      batch: { ...batch, manufacturer, analysisRecords: batchRecords },
+      records: recordsWithStones 
+    };
   }
 
   async getNextBatchNumber(manufacturerId: number): Promise<number> {

@@ -6,7 +6,8 @@ import {
   ListOrdered, 
   FileText,
   DollarSign,
-  Diamond
+  Diamond,
+  Package
 } from "lucide-react";
 import {
   Sidebar,
@@ -55,6 +56,11 @@ const menuItems = [
     title: "Analiz Kayıtları",
     url: "/analysis",
     icon: FileText,
+  },
+  {
+    title: "Parti Listesi",
+    url: "/batches",
+    icon: Package,
   },
 ];
 

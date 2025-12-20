@@ -14,6 +14,8 @@ import GemstonePricesPage from "@/pages/gemstone-prices";
 import AnalysisPage from "@/pages/analysis";
 import ExchangeRatesPage from "@/pages/exchange-rates";
 import RapaportPage from "@/pages/rapaport";
+import BatchListPage from "@/pages/batch-list";
+import BatchDetailPage from "@/pages/batch-detail";
 
 function Router() {
   return (
@@ -25,6 +27,8 @@ function Router() {
       <Route path="/analysis" component={AnalysisPage} />
       <Route path="/exchange-rates" component={ExchangeRatesPage} />
       <Route path="/rapaport" component={RapaportPage} />
+      <Route path="/batches" component={BatchListPage} />
+      <Route path="/batch/:id" component={BatchDetailPage} />
       <Route component={NotFound} />
     </Switch>
   );
