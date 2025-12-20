@@ -5,7 +5,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Trash2, FileText, Search, Eye, ChevronDown, ChevronUp, Pencil, X, Save } from "lucide-react";
+import { Plus, Trash2, FileText, Search, Eye, ChevronDown, ChevronUp, Pencil, X, Save, Download } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -164,6 +166,143 @@ export default function AnalysisPage() {
       toast({ title: "Parti oluşturulurken hata", variant: "destructive" });
     },
   });
+
+  const generatePDF = (record: AnalysisRecordWithRelations) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 14;
+    let yPos = 20;
+
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("Mucevher Maliyet Analizi Raporu", pageWidth / 2, yPos, { align: "center" });
+    yPos += 12;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Tarih: ${new Date().toLocaleDateString('tr-TR')}`, pageWidth - margin, yPos, { align: "right" });
+    yPos += 8;
+
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 10;
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Uretici Bilgileri", margin, yPos);
+    yPos += 8;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(`Uretici: ${record.manufacturer?.name || "-"}`, margin, yPos);
+    yPos += 6;
+    doc.text(`Urun Kodu: ${record.productCode}`, margin, yPos);
+    yPos += 6;
+    doc.text(`Toplam Gram: ${record.totalGrams} gr`, margin, yPos);
+    yPos += 6;
+    const purity = GOLD_PURITIES.find(p => p.value === record.goldPurity);
+    doc.text(`Altin Ayari: ${purity?.label || record.goldPurity + " Ayar"}`, margin, yPos);
+    yPos += 12;
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Maliyet Dagilimi (USD)", margin, yPos);
+    yPos += 4;
+
+    const costData = [
+      ["Hammadde Maliyeti", `$${parseFloat(record.rawMaterialCost || "0").toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+      ["Iscilik Maliyeti", `$${parseFloat(record.laborCost || "0").toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+      ["Mihlama Bedeli", `$${parseFloat(record.totalSettingCost || "0").toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+      ["Tas Maliyeti", `$${parseFloat(record.totalStoneCost || "0").toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+    ];
+
+    if (parseFloat(record.polishAmount || "0") > 0) {
+      costData.push(["Cila", `$${parseFloat(record.polishAmount || "0").toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`]);
+    }
+    if (parseFloat(record.certificateAmount || "0") > 0) {
+      costData.push(["Sertifika", `$${parseFloat(record.certificateAmount || "0").toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`]);
+    }
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Kalem", "Tutar"]],
+      body: costData,
+      theme: "striped",
+      headStyles: { fillColor: [51, 51, 51] },
+      margin: { left: margin, right: margin },
+      tableWidth: pageWidth / 2 - margin,
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 10;
+
+    if (record.stones && record.stones.length > 0) {
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Tas Detaylari", margin, yPos);
+      yPos += 4;
+
+      const stoneData = record.stones.map(stone => [
+        stone.stoneType,
+        `${stone.caratSize} ct`,
+        stone.quantity.toString(),
+        stone.rapaportPrice ? `$${parseFloat(stone.rapaportPrice).toFixed(0)}/ct` : "-",
+        stone.discountPercent ? `${stone.discountPercent}%` : "-",
+        stone.settingCost ? `$${parseFloat(stone.settingCost).toFixed(2)}` : "-",
+        `$${parseFloat(stone.totalStoneCost || "0").toFixed(2)}`,
+      ]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [["Tas Tipi", "Karat", "Adet", "Rapaport", "Iskonto", "Mihlama", "Maliyet"]],
+        body: stoneData,
+        theme: "striped",
+        headStyles: { fillColor: [51, 51, 51] },
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 8 },
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 10;
+    }
+
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 10;
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Analiz Ozeti", margin, yPos);
+    yPos += 8;
+
+    const totalCost = parseFloat(record.totalCost || "0");
+    const totalGrams = parseFloat(record.totalGrams || "1");
+    const costPerGram = totalGrams > 0 ? totalCost / totalGrams : 0;
+    const profitLoss = parseFloat(record.profitLoss || "0");
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(`Toplam Maliyet: $${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, margin, yPos);
+    yPos += 6;
+    doc.text(`Gram Basi Maliyet: $${costPerGram.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/gr`, margin, yPos);
+    yPos += 6;
+    if (record.manufacturerPrice && parseFloat(record.manufacturerPrice) > 0) {
+      doc.text(`Uretici Fiyati: $${parseFloat(record.manufacturerPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, margin, yPos);
+      yPos += 6;
+      doc.setFont("helvetica", "bold");
+      const profitText = profitLoss >= 0 ? `Kar: +$${profitLoss.toFixed(2)}` : `Zarar: -$${Math.abs(profitLoss).toFixed(2)}`;
+      doc.text(profitText, margin, yPos);
+      yPos += 6;
+    }
+
+    if (record.goldPriceUsed || record.usdTryUsed) {
+      yPos += 4;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Kayit anindaki kurlar: 1 USD = ${parseFloat(record.usdTryUsed || "0").toFixed(4)} TL | Altin = $${(parseFloat(record.goldPriceUsed || "0") / parseFloat(record.usdTryUsed || "1")).toFixed(2)}/gr`, margin, yPos);
+    }
+
+    doc.save(`analiz-${record.productCode}-${new Date().toISOString().split('T')[0]}.pdf`);
+    toast({ title: "PDF raporu indirildi" });
+  };
 
   const form = useForm<AnalysisFormValues>({
     resolver: zodResolver(analysisFormSchema),
@@ -1088,6 +1227,16 @@ export default function AnalysisPage() {
                   </div>
                 </div>
               )}
+
+              <div className="flex justify-end pt-4 border-t">
+                <Button
+                  onClick={() => generatePDF(selectedRecord)}
+                  data-testid="button-download-pdf"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  PDF İndir
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>

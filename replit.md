@@ -78,6 +78,7 @@ All routes prefixed with `/api/`:
 - **Radix UI**: Headless component primitives (dialogs, dropdowns, forms, etc.)
 - **Lucide React**: Icon library
 - **shadcn/ui**: Pre-built component patterns using Radix + Tailwind
+- **jsPDF + jspdf-autotable**: PDF report generation for analysis records
 
 ### Development Tools
 - **Vite**: Frontend build tool with React plugin
