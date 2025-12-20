@@ -287,7 +287,10 @@ export default function AnalysisPage() {
       doc.text(`Uretici Fiyati: $${parseFloat(record.manufacturerPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, margin, yPos);
       yPos += 6;
       doc.setFont("helvetica", "bold");
-      const profitText = profitLoss >= 0 ? `Kar: +$${profitLoss.toFixed(2)}` : `Zarar: -$${Math.abs(profitLoss).toFixed(2)}`;
+      const profitLossPercent = totalCost > 0 ? (profitLoss / totalCost) * 100 : 0;
+      const profitText = profitLoss >= 0 
+        ? `Kar: +$${profitLoss.toFixed(2)} (+${profitLossPercent.toFixed(1)}%)`
+        : `Zarar: -$${Math.abs(profitLoss).toFixed(2)} (${profitLossPercent.toFixed(1)}%)`;
       doc.text(profitText, margin, yPos);
       yPos += 6;
     }
@@ -346,6 +349,7 @@ export default function AnalysisPage() {
       const profitLoss = parseFloat(record.profitLoss || "0");
       const stoneCount = record.stones?.length || 0;
       
+      const profitLossPercent = totalCost > 0 ? (profitLoss / totalCost) * 100 : 0;
       return [
         (idx + 1).toString(),
         record.productCode,
@@ -356,7 +360,7 @@ export default function AnalysisPage() {
         `$${parseFloat(record.totalStoneCost || "0").toFixed(2)}`,
         `$${totalCost.toFixed(2)}`,
         `$${costPerGram.toFixed(2)}`,
-        profitLoss >= 0 ? `+$${profitLoss.toFixed(2)}` : `-$${Math.abs(profitLoss).toFixed(2)}`,
+        profitLoss >= 0 ? `+$${profitLoss.toFixed(2)} (+${profitLossPercent.toFixed(1)}%)` : `-$${Math.abs(profitLoss).toFixed(2)} (${profitLossPercent.toFixed(1)}%)`,
       ];
     });
 
@@ -1195,6 +1199,9 @@ export default function AnalysisPage() {
                         data-testid="text-profit-loss"
                       >
                         {costs.profitLoss >= 0 ? '+$' : '-$'}{Math.abs(costs.profitLoss).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <span className="text-base ml-1">
+                          ({costs.totalCost > 0 ? (costs.profitLoss >= 0 ? '+' : '') + ((costs.profitLoss / costs.totalCost) * 100).toFixed(1) : '0.0'}%)
+                        </span>
                       </p>
                     </div>
                   </div>
@@ -1317,6 +1324,9 @@ export default function AnalysisPage() {
                     <p className="text-sm text-muted-foreground">Kâr / Zarar</p>
                     <p className={`font-mono font-bold text-lg ${parseFloat(selectedRecord.profitLoss || "0") >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                       {parseFloat(selectedRecord.profitLoss || "0") >= 0 ? '+$' : '-$'}{Math.abs(parseFloat(selectedRecord.profitLoss || "0")).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <span className="text-sm ml-1">
+                        ({parseFloat(selectedRecord.totalCost || "0") > 0 ? (parseFloat(selectedRecord.profitLoss || "0") >= 0 ? '+' : '') + ((parseFloat(selectedRecord.profitLoss || "0") / parseFloat(selectedRecord.totalCost || "1")) * 100).toFixed(1) : '0.0'}%)
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -1454,6 +1464,9 @@ export default function AnalysisPage() {
                           {record.profitLoss && (
                             <span className={`font-mono font-medium ${parseFloat(record.profitLoss) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                               {parseFloat(record.profitLoss) >= 0 ? '+$' : '-$'}{Math.abs(parseFloat(record.profitLoss)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              <span className="text-xs ml-1">
+                                ({parseFloat(record.totalCost || "0") > 0 ? (parseFloat(record.profitLoss) >= 0 ? '+' : '') + ((parseFloat(record.profitLoss) / parseFloat(record.totalCost || "1")) * 100).toFixed(1) : '0.0'}%)
+                              </span>
                             </span>
                           )}
                         </TableCell>
