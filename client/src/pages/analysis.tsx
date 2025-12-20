@@ -304,6 +304,117 @@ export default function AnalysisPage() {
     toast({ title: "PDF raporu indirildi" });
   };
 
+  const generateBatchPDF = (batchId: number, batchNumber: number, manufacturerName: string) => {
+    const batchRecords = analysisRecords?.filter(r => r.batchId === batchId) || [];
+    if (batchRecords.length === 0) {
+      toast({ title: "Bu partide analiz kaydı bulunamadı", variant: "destructive" });
+      return;
+    }
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 14;
+    let yPos = 20;
+
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("Parti Maliyet Raporu", pageWidth / 2, yPos, { align: "center" });
+    yPos += 10;
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Parti #${batchNumber} - ${manufacturerName}`, pageWidth / 2, yPos, { align: "center" });
+    yPos += 8;
+
+    doc.setFontSize(10);
+    doc.text(`Tarih: ${new Date().toLocaleDateString('tr-TR')}`, pageWidth - margin, yPos, { align: "right" });
+    yPos += 8;
+
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 10;
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Urun Listesi", margin, yPos);
+    yPos += 4;
+
+    const productData = batchRecords.map((record, idx) => {
+      const totalCost = parseFloat(record.totalCost || "0");
+      const totalGrams = parseFloat(record.totalGrams || "1");
+      const costPerGram = totalGrams > 0 ? totalCost / totalGrams : 0;
+      const profitLoss = parseFloat(record.profitLoss || "0");
+      const stoneCount = record.stones?.length || 0;
+      
+      return [
+        (idx + 1).toString(),
+        record.productCode,
+        `${record.totalGrams} gr`,
+        stoneCount.toString(),
+        `$${parseFloat(record.rawMaterialCost || "0").toFixed(2)}`,
+        `$${parseFloat(record.totalSettingCost || "0").toFixed(2)}`,
+        `$${parseFloat(record.totalStoneCost || "0").toFixed(2)}`,
+        `$${totalCost.toFixed(2)}`,
+        `$${costPerGram.toFixed(2)}`,
+        profitLoss >= 0 ? `+$${profitLoss.toFixed(2)}` : `-$${Math.abs(profitLoss).toFixed(2)}`,
+      ];
+    });
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [["#", "Urun Kodu", "Gram", "Tas", "Hammadde", "Mihlama", "Tas Mal.", "Toplam", "$/gr", "Kar/Zarar"]],
+      body: productData,
+      theme: "striped",
+      headStyles: { fillColor: [51, 51, 51], fontSize: 7 },
+      styles: { fontSize: 7 },
+      margin: { left: margin, right: margin },
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 10;
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Parti Ozeti", margin, yPos);
+    yPos += 8;
+
+    const totalBatchCost = batchRecords.reduce((sum, r) => sum + parseFloat(r.totalCost || "0"), 0);
+    const totalBatchGrams = batchRecords.reduce((sum, r) => sum + parseFloat(r.totalGrams || "0"), 0);
+    const totalBatchRawMaterial = batchRecords.reduce((sum, r) => sum + parseFloat(r.rawMaterialCost || "0"), 0);
+    const totalBatchSetting = batchRecords.reduce((sum, r) => sum + parseFloat(r.totalSettingCost || "0"), 0);
+    const totalBatchStone = batchRecords.reduce((sum, r) => sum + parseFloat(r.totalStoneCost || "0"), 0);
+    const totalBatchProfitLoss = batchRecords.reduce((sum, r) => sum + parseFloat(r.profitLoss || "0"), 0);
+    const avgCostPerGram = totalBatchGrams > 0 ? totalBatchCost / totalBatchGrams : 0;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(`Toplam Urun Sayisi: ${batchRecords.length}`, margin, yPos);
+    yPos += 6;
+    doc.text(`Toplam Gram: ${totalBatchGrams.toFixed(3)} gr`, margin, yPos);
+    yPos += 6;
+    doc.text(`Toplam Hammadde: $${totalBatchRawMaterial.toFixed(2)}`, margin, yPos);
+    yPos += 6;
+    doc.text(`Toplam Mihlama: $${totalBatchSetting.toFixed(2)}`, margin, yPos);
+    yPos += 6;
+    doc.text(`Toplam Tas Maliyeti: $${totalBatchStone.toFixed(2)}`, margin, yPos);
+    yPos += 6;
+    doc.setFont("helvetica", "bold");
+    doc.text(`Toplam Maliyet: $${totalBatchCost.toFixed(2)}`, margin, yPos);
+    yPos += 6;
+    doc.text(`Ortalama Gram Basi Maliyet: $${avgCostPerGram.toFixed(2)}/gr`, margin, yPos);
+    yPos += 6;
+    const profitText = totalBatchProfitLoss >= 0 
+      ? `Toplam Kar: +$${totalBatchProfitLoss.toFixed(2)}` 
+      : `Toplam Zarar: -$${Math.abs(totalBatchProfitLoss).toFixed(2)}`;
+    doc.text(profitText, margin, yPos);
+
+    doc.save(`parti-${batchNumber}-${manufacturerName.replace(/\s+/g, '_')}-${new Date().toISOString().split('T')[0]}.pdf`);
+    toast({ title: "Parti raporu indirildi" });
+  };
+
   const form = useForm<AnalysisFormValues>({
     resolver: zodResolver(analysisFormSchema),
     defaultValues: {
@@ -655,6 +766,23 @@ export default function AnalysisPage() {
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
+                  {selectedBatch && (
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        const batch = batches?.find(b => b.id.toString() === selectedBatch);
+                        const manufacturer = manufacturers?.find(m => m.id.toString() === selectedManufacturer);
+                        if (batch && manufacturer) {
+                          generateBatchPDF(batch.id, batch.batchNumber, manufacturer.name);
+                        }
+                      }}
+                      data-testid="button-batch-report"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
