@@ -58,34 +58,34 @@ export default function RapaportPage() {
     const parsedPrices: any[] = [];
     
     const clarityOrder = ["IF", "VVS1", "VVS2", "VS1", "VS2", "SI1", "SI2", "SI3", "I1", "I2", "I3"];
+    const smallClarityOrder = ["IF", "VVS1", "VVS2", "VS1", "VS2", "SI1", "SI2", "I1"];
     
-    let currentLowCarat = "";
-    let currentHighCarat = "";
     let currentShape = "Round";
     
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      
-      const caratMatch = line.match(/RAPAPORT\s*:\s*\(\.?(\d+)\s*-\s*\.?(\d+)\s*CT\.\)/i) ||
-                         line.match(/RAPAPORT\s*:\s*\((\d+\.\d+)\s*-\s*(\d+\.\d+)\s*CT\.\)/i);
-      
-      if (caratMatch) {
-        let low = caratMatch[1];
-        let high = caratMatch[2];
-        
+    const extractCaratRanges = (line: string): { low: string; high: string }[] => {
+      const ranges: { low: string; high: string }[] = [];
+      const pattern = /RAPAPORT\s*:\s*\(\.?(\d+)\s*-\s*\.?(\d+)\s*CT\.\)|RAPAPORT\s*:\s*\((\d+\.\d+)\s*-\s*(\d+\.\d+)\s*CT\.\)/gi;
+      let match;
+      while ((match = pattern.exec(line)) !== null) {
+        let low = match[1] || match[3];
+        let high = match[2] || match[4];
         if (!low.includes(".")) {
           low = "0." + low.padStart(2, "0");
         }
         if (!high.includes(".")) {
           high = "0." + high.padStart(2, "0");
         }
-        
-        currentLowCarat = low;
-        currentHighCarat = high;
-        continue;
+        ranges.push({ low, high });
       }
+      return ranges;
+    };
+    
+    let activeRanges: { low: string; high: string }[] = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].replace(/"/g, "");
       
-      if (line.toLowerCase().includes("pear")) currentShape = "Pear";
+      if (line.toLowerCase().includes("pear shape")) currentShape = "Pear";
       else if (line.toLowerCase().includes("marquise")) currentShape = "Marquise";
       else if (line.toLowerCase().includes("oval")) currentShape = "Oval";
       else if (line.toLowerCase().includes("heart")) currentShape = "Heart";
@@ -95,24 +95,84 @@ export default function RapaportPage() {
       else if (line.toLowerCase().includes("radiant")) currentShape = "Radiant";
       else if (line.toLowerCase().includes("asscher")) currentShape = "Asscher";
       
-      if (!currentLowCarat || !currentHighCarat) continue;
+      const ranges = extractCaratRanges(line);
+      if (ranges.length > 0) {
+        activeRanges = ranges;
+        continue;
+      }
       
-      const colorMatch = line.match(/^"?\s*([D-M])\s+/);
-      if (colorMatch) {
-        const color = colorMatch[1];
+      if (activeRanges.length === 0) continue;
+      
+      const colorGroupMatch = line.match(/^\s*([D-M])-([D-M])\s+/);
+      if (colorGroupMatch && activeRanges.length > 0) {
+        const startColor = colorGroupMatch[1];
+        const endColor = colorGroupMatch[2];
+        const colors: string[] = [];
+        for (let c = startColor.charCodeAt(0); c <= endColor.charCodeAt(0); c++) {
+          colors.push(String.fromCharCode(c));
+        }
         
-        const numbers = line.match(/\d+/g);
-        if (numbers && numbers.length >= 5) {
-          const priceValues = numbers.slice(0, Math.min(numbers.length, clarityOrder.length));
+        const numbers = line.match(/\d+\.?\d*/g);
+        if (numbers && numbers.length >= 8) {
+          const leftPrices = numbers.slice(0, 8);
+          const rightPrices = numbers.length >= 16 ? numbers.slice(8, 16) : [];
           
-          priceValues.forEach((price, idx) => {
+          colors.forEach(color => {
+            leftPrices.forEach((price, idx) => {
+              if (idx < smallClarityOrder.length) {
+                const priceNum = parseFloat(price);
+                if (priceNum > 0 && priceNum < 100) {
+                  parsedPrices.push({
+                    shape: currentShape,
+                    lowCarat: activeRanges[0].low,
+                    highCarat: activeRanges[0].high,
+                    color: color,
+                    clarity: smallClarityOrder[idx],
+                    pricePerCarat: (priceNum * 100).toFixed(0),
+                  });
+                }
+              }
+            });
+            
+            if (rightPrices.length >= 8 && activeRanges.length > 1) {
+              rightPrices.forEach((price, idx) => {
+                if (idx < smallClarityOrder.length) {
+                  const priceNum = parseFloat(price);
+                  if (priceNum > 0 && priceNum < 100) {
+                    parsedPrices.push({
+                      shape: currentShape,
+                      lowCarat: activeRanges[1].low,
+                      highCarat: activeRanges[1].high,
+                      color: color,
+                      clarity: smallClarityOrder[idx],
+                      pricePerCarat: (priceNum * 100).toFixed(0),
+                    });
+                  }
+                }
+              });
+            }
+          });
+        }
+        continue;
+      }
+      
+      const singleColorMatch = line.match(/^\s*([D-M])\s+(\d+)/);
+      if (singleColorMatch && activeRanges.length > 0) {
+        const color = singleColorMatch[1];
+        const numbers = line.match(/\d+/g);
+        
+        if (numbers && numbers.length >= 11) {
+          const leftPrices = numbers.slice(0, 11);
+          const rightPrices = numbers.length >= 22 ? numbers.slice(11, 22) : [];
+          
+          leftPrices.forEach((price, idx) => {
             if (idx < clarityOrder.length) {
               const priceNum = parseInt(price);
-              if (priceNum > 0 && priceNum < 10000) {
+              if (priceNum > 0 && priceNum < 15000) {
                 parsedPrices.push({
                   shape: currentShape,
-                  lowCarat: currentLowCarat,
-                  highCarat: currentHighCarat,
+                  lowCarat: activeRanges[0].low,
+                  highCarat: activeRanges[0].high,
                   color: color,
                   clarity: clarityOrder[idx],
                   pricePerCarat: (priceNum * 100).toString(),
@@ -120,6 +180,24 @@ export default function RapaportPage() {
               }
             }
           });
+          
+          if (rightPrices.length >= 11 && activeRanges.length > 1) {
+            rightPrices.forEach((price, idx) => {
+              if (idx < clarityOrder.length) {
+                const priceNum = parseInt(price);
+                if (priceNum > 0 && priceNum < 15000) {
+                  parsedPrices.push({
+                    shape: currentShape,
+                    lowCarat: activeRanges[1].low,
+                    highCarat: activeRanges[1].high,
+                    color: color,
+                    clarity: clarityOrder[idx],
+                    pricePerCarat: (priceNum * 100).toString(),
+                  });
+                }
+              }
+            });
+          }
         }
       }
     }
