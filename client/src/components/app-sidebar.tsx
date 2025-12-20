@@ -58,7 +58,7 @@ const menuItems = [
     icon: FileText,
   },
   {
-    title: "Parti Listesi",
+    title: "Rapor",
     url: "/batches",
     icon: Package,
   },
