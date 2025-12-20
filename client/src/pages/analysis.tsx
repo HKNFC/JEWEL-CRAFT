@@ -456,17 +456,18 @@ export default function AnalysisPage() {
     } else {
       laborCost = safeNumber(goldLaborCost);
     }
-    laborCost += safeNumber(polishAmount + certificateAmount);
+    laborCost += safeNumber(polishAmount);
 
     const totalSettingCost = safeNumber(stones.reduce((sum, s) => sum + (s.settingCost || 0), 0));
     const totalStoneCostValue = safeNumber(stones.reduce((sum, s) => sum + (s.totalStoneCost || 0), 0));
 
-    const totalCost = safeNumber(rawMaterialCost + laborCost + totalSettingCost + totalStoneCostValue);
+    const totalCost = safeNumber(rawMaterialCost + laborCost + certificateAmount + totalSettingCost + totalStoneCostValue);
     const profitLoss = safeNumber(manufacturerPrice - totalCost);
 
     return {
       rawMaterialCost,
       laborCost,
+      certificateAmount,
       totalSettingCost,
       totalStoneCost: totalStoneCostValue,
       totalCost,
@@ -1273,7 +1274,7 @@ export default function AnalysisPage() {
 
               <div className="p-4 bg-muted/30 rounded-lg space-y-3">
                 <h4 className="font-medium">Maliyet Dağılımı (USD)</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                   <div>
                     <p className="text-xs text-muted-foreground">Hammadde</p>
                     <p className="font-mono font-medium">
@@ -1284,6 +1285,12 @@ export default function AnalysisPage() {
                     <p className="text-xs text-muted-foreground">İşçilik</p>
                     <p className="font-mono font-medium">
                       ${parseFloat(selectedRecord.laborCost || "0").toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Sertifika</p>
+                    <p className="font-mono font-medium">
+                      ${parseFloat(selectedRecord.certificateAmount || "0").toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                   <div>
