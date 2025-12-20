@@ -29,6 +29,7 @@ export const gemstonePriceLists = pgTable("gemstone_price_lists", {
 export const analysisRecords = pgTable("analysis_records", {
   id: serial("id").primaryKey(),
   manufacturerId: integer("manufacturer_id").references(() => manufacturers.id),
+  batchId: integer("batch_id").references(() => batches.id),
   productCode: text("product_code").notNull(),
   totalGrams: decimal("total_grams", { precision: 10, scale: 3 }).notNull(),
   goldPurity: text("gold_purity").default("24"),
@@ -84,6 +85,13 @@ export const rapaportPrices = pgTable("rapaport_prices", {
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
 });
 
+export const batches = pgTable("batches", {
+  id: serial("id").primaryKey(),
+  manufacturerId: integer("manufacturer_id").references(() => manufacturers.id).notNull(),
+  batchNumber: integer("batch_number").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const manufacturersRelations = relations(manufacturers, ({ many }) => ({
   analysisRecords: many(analysisRecords),
 }));
@@ -92,6 +100,10 @@ export const analysisRecordsRelations = relations(analysisRecords, ({ one, many 
   manufacturer: one(manufacturers, {
     fields: [analysisRecords.manufacturerId],
     references: [manufacturers.id],
+  }),
+  batch: one(batches, {
+    fields: [analysisRecords.batchId],
+    references: [batches.id],
   }),
   stones: many(analysisStones),
 }));
@@ -103,6 +115,14 @@ export const analysisStonesRelations = relations(analysisStones, ({ one }) => ({
   }),
 }));
 
+export const batchesRelations = relations(batches, ({ one, many }) => ({
+  manufacturer: one(manufacturers, {
+    fields: [batches.manufacturerId],
+    references: [manufacturers.id],
+  }),
+  analysisRecords: many(analysisRecords),
+}));
+
 export const insertManufacturerSchema = createInsertSchema(manufacturers).omit({ id: true });
 export const insertStoneSettingRateSchema = createInsertSchema(stoneSettingRates).omit({ id: true });
 export const insertGemstonePriceListSchema = createInsertSchema(gemstonePriceLists).omit({ id: true });
@@ -110,6 +130,7 @@ export const insertAnalysisRecordSchema = createInsertSchema(analysisRecords).om
 export const insertAnalysisStoneSchema = createInsertSchema(analysisStones).omit({ id: true });
 export const insertExchangeRateSchema = createInsertSchema(exchangeRates).omit({ id: true, updatedAt: true });
 export const insertRapaportPriceSchema = createInsertSchema(rapaportPrices).omit({ id: true, uploadedAt: true });
+export const insertBatchSchema = createInsertSchema(batches).omit({ id: true, createdAt: true });
 
 export type Manufacturer = typeof manufacturers.$inferSelect;
 export type InsertManufacturer = z.infer<typeof insertManufacturerSchema>;
@@ -132,7 +153,16 @@ export type InsertExchangeRate = z.infer<typeof insertExchangeRateSchema>;
 export type RapaportPrice = typeof rapaportPrices.$inferSelect;
 export type InsertRapaportPrice = z.infer<typeof insertRapaportPriceSchema>;
 
+export type Batch = typeof batches.$inferSelect;
+export type InsertBatch = z.infer<typeof insertBatchSchema>;
+
+export type BatchWithRelations = Batch & {
+  manufacturer?: Manufacturer | null;
+  analysisRecords?: AnalysisRecord[];
+};
+
 export type AnalysisRecordWithRelations = AnalysisRecord & {
   manufacturer?: Manufacturer | null;
+  batch?: Batch | null;
   stones?: AnalysisStone[];
 };

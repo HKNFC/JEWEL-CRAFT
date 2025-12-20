@@ -6,6 +6,7 @@ import {
   analysisStones,
   exchangeRates,
   rapaportPrices,
+  batches,
   type Manufacturer, 
   type InsertManufacturer,
   type StoneSettingRate,
@@ -21,6 +22,9 @@ import {
   type InsertExchangeRate,
   type RapaportPrice,
   type InsertRapaportPrice,
+  type Batch,
+  type InsertBatch,
+  type BatchWithRelations,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
@@ -58,6 +62,13 @@ export interface IStorage {
   createRapaportPrices(data: InsertRapaportPrice[]): Promise<RapaportPrice[]>;
   clearRapaportPrices(): Promise<void>;
   findRapaportPrice(shape: string, carat: number, color: string, clarity: string): Promise<RapaportPrice | undefined>;
+
+  getBatches(): Promise<BatchWithRelations[]>;
+  getBatchesByManufacturer(manufacturerId: number): Promise<Batch[]>;
+  getBatch(id: number): Promise<BatchWithRelations | undefined>;
+  createBatch(manufacturerId: number): Promise<Batch>;
+  deleteBatch(id: number): Promise<boolean>;
+  getNextBatchNumber(manufacturerId: number): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -293,6 +304,61 @@ export class DatabaseStorage implements IStorage {
       )
     );
     return price || undefined;
+  }
+
+  async getBatches(): Promise<BatchWithRelations[]> {
+    const allBatches = await db.select().from(batches).orderBy(desc(batches.createdAt));
+    const result: BatchWithRelations[] = [];
+    
+    for (const batch of allBatches) {
+      const manufacturer = await this.getManufacturer(batch.manufacturerId);
+      const records = await db.select().from(analysisRecords).where(eq(analysisRecords.batchId, batch.id));
+      result.push({ ...batch, manufacturer, analysisRecords: records });
+    }
+    
+    return result;
+  }
+
+  async getBatchesByManufacturer(manufacturerId: number): Promise<Batch[]> {
+    return db.select().from(batches)
+      .where(eq(batches.manufacturerId, manufacturerId))
+      .orderBy(desc(batches.batchNumber));
+  }
+
+  async getBatch(id: number): Promise<BatchWithRelations | undefined> {
+    const [batch] = await db.select().from(batches).where(eq(batches.id, id));
+    if (!batch) return undefined;
+
+    const manufacturer = await this.getManufacturer(batch.manufacturerId);
+    const records = await db.select().from(analysisRecords).where(eq(analysisRecords.batchId, batch.id));
+    
+    return { ...batch, manufacturer, analysisRecords: records };
+  }
+
+  async getNextBatchNumber(manufacturerId: number): Promise<number> {
+    const existingBatches = await db.select().from(batches)
+      .where(eq(batches.manufacturerId, manufacturerId))
+      .orderBy(desc(batches.batchNumber))
+      .limit(1);
+    
+    if (existingBatches.length === 0) {
+      return 1;
+    }
+    return existingBatches[0].batchNumber + 1;
+  }
+
+  async createBatch(manufacturerId: number): Promise<Batch> {
+    const nextNumber = await this.getNextBatchNumber(manufacturerId);
+    const [batch] = await db.insert(batches).values({
+      manufacturerId,
+      batchNumber: nextNumber,
+    }).returning();
+    return batch;
+  }
+
+  async deleteBatch(id: number): Promise<boolean> {
+    const result = await db.delete(batches).where(eq(batches.id, id)).returning();
+    return result.length > 0;
   }
 }
 

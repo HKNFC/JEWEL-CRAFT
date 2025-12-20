@@ -7,6 +7,7 @@ import {
   insertGemstonePriceListSchema,
   insertAnalysisRecordSchema,
   insertExchangeRateSchema,
+  insertBatchSchema,
 } from "@shared/schema";
 import { fetchGoldPrices } from "./goldapi";
 
@@ -433,6 +434,75 @@ export async function registerRoutes(
       res.json(price || null);
     } catch (error) {
       res.status(500).json({ error: "Failed to lookup Rapaport price" });
+    }
+  });
+
+  app.get("/api/batches", async (req, res) => {
+    try {
+      const batches = await storage.getBatches();
+      res.json(batches);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch batches" });
+    }
+  });
+
+  app.get("/api/batches/manufacturer/:manufacturerId", async (req, res) => {
+    try {
+      const manufacturerId = parseInt(req.params.manufacturerId);
+      const batches = await storage.getBatchesByManufacturer(manufacturerId);
+      res.json(batches);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch batches for manufacturer" });
+    }
+  });
+
+  app.get("/api/batches/next-number/:manufacturerId", async (req, res) => {
+    try {
+      const manufacturerId = parseInt(req.params.manufacturerId);
+      const nextNumber = await storage.getNextBatchNumber(manufacturerId);
+      res.json({ nextNumber });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get next batch number" });
+    }
+  });
+
+  app.get("/api/batches/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const batch = await storage.getBatch(id);
+      if (!batch) {
+        return res.status(404).json({ error: "Batch not found" });
+      }
+      res.json(batch);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch batch" });
+    }
+  });
+
+  app.post("/api/batches", async (req, res) => {
+    try {
+      const { manufacturerId } = req.body;
+      if (!manufacturerId) {
+        return res.status(400).json({ error: "manufacturerId is required" });
+      }
+      const batch = await storage.createBatch(parseInt(manufacturerId));
+      res.status(201).json(batch);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to create batch" });
+    }
+  });
+
+  app.delete("/api/batches/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteBatch(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Batch not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete batch" });
     }
   });
 

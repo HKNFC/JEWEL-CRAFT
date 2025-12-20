@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -54,10 +54,11 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import type { AnalysisRecordWithRelations, Manufacturer, StoneSettingRate, GemstonePriceList } from "@shared/schema";
+import type { AnalysisRecordWithRelations, Manufacturer, StoneSettingRate, GemstonePriceList, Batch } from "@shared/schema";
 
 const analysisFormSchema = z.object({
   manufacturerId: z.string().min(1, "Üretici seçiniz"),
+  batchId: z.string().optional(),
   productCode: z.string().min(1, "Ürün kodu gerekli"),
   totalGrams: z.string().min(1, "Toplam gram gerekli"),
   goldPurity: z.string().default("24"),
@@ -110,6 +111,7 @@ export default function AnalysisPage() {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [fireValue, setFireValue] = useState([0]);
   const [polishEnabled, setPolishEnabled] = useState(false);
+  const [selectedBatch, setSelectedBatch] = useState<string>("");
 
   interface ExchangeRates {
     usdTry: string;
@@ -141,10 +143,33 @@ export default function AnalysisPage() {
     queryKey: ["/api/gemstone-prices"],
   });
 
+  const { data: batches, refetch: refetchBatches } = useQuery<Batch[]>({
+    queryKey: ["/api/batches/manufacturer", selectedManufacturer],
+    enabled: !!selectedManufacturer,
+  });
+
+  const createBatchMutation = useMutation({
+    mutationFn: async (manufacturerId: number) => {
+      const nextNumResponse = await fetch(`/api/batches/next-number/${manufacturerId}`);
+      const { nextNumber } = await nextNumResponse.json();
+      return apiRequest("POST", "/api/batches", { manufacturerId, batchNumber: nextNumber });
+    },
+    onSuccess: async (response) => {
+      const newBatch = await response.json();
+      queryClient.invalidateQueries({ queryKey: ["/api/batches/manufacturer", selectedManufacturer] });
+      setSelectedBatch(newBatch.id.toString());
+      toast({ title: "Yeni parti oluşturuldu" });
+    },
+    onError: () => {
+      toast({ title: "Parti oluşturulurken hata", variant: "destructive" });
+    },
+  });
+
   const form = useForm<AnalysisFormValues>({
     resolver: zodResolver(analysisFormSchema),
     defaultValues: {
       manufacturerId: "",
+      batchId: "",
       productCode: "",
       totalGrams: "",
       goldPurity: "24",
@@ -269,6 +294,7 @@ export default function AnalysisPage() {
 
   const resetForm = () => {
     setSelectedManufacturer("");
+    setSelectedBatch("");
     setShowForm(false);
     setEditingId(null);
     form.reset();
@@ -279,7 +305,8 @@ export default function AnalysisPage() {
 
   const onSubmit = (data: AnalysisFormValues) => {
     const formData = { 
-      ...data, 
+      ...data,
+      batchId: selectedBatch || undefined,
       firePercentage: fireValue[0].toString(),
       rawMaterialCost: costs.rawMaterialCost.toFixed(2),
       laborCost: costs.laborCost.toFixed(2),
@@ -360,8 +387,10 @@ export default function AnalysisPage() {
   const openEditRecord = (record: AnalysisRecordWithRelations) => {
     setEditingId(record.id);
     setSelectedManufacturer(record.manufacturerId?.toString() || "");
+    setSelectedBatch(record.batchId?.toString() || "");
     form.reset({
       manufacturerId: record.manufacturerId?.toString() || "",
+      batchId: record.batchId?.toString() || "",
       productCode: record.productCode,
       totalGrams: record.totalGrams,
       goldPurity: record.goldPurity || "24",
@@ -437,6 +466,7 @@ export default function AnalysisPage() {
                 value={selectedManufacturer} 
                 onValueChange={(value) => {
                   setSelectedManufacturer(value);
+                  setSelectedBatch("");
                   if (!showForm) {
                     setEditingId(null);
                     form.reset();
@@ -457,6 +487,38 @@ export default function AnalysisPage() {
                 </SelectContent>
               </Select>
             </div>
+            {selectedManufacturer && (
+              <div className="flex-1 min-w-[200px]">
+                <Label className="mb-2 block">Parti Numarası</Label>
+                <div className="flex gap-2">
+                  <Select 
+                    value={selectedBatch} 
+                    onValueChange={setSelectedBatch}
+                  >
+                    <SelectTrigger data-testid="select-batch" className="w-full">
+                      <SelectValue placeholder="Parti seçin (opsiyonel)..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {batches?.map((b) => (
+                        <SelectItem key={b.id} value={b.id.toString()}>
+                          Parti #{b.batchNumber}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => createBatchMutation.mutate(parseInt(selectedManufacturer))}
+                    disabled={createBatchMutation.isPending}
+                    data-testid="button-create-batch"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
             {showForm && (
               <Button variant="ghost" size="icon" onClick={resetForm} data-testid="button-close-form">
                 <X className="h-4 w-4" />
@@ -1060,6 +1122,7 @@ export default function AnalysisPage() {
                     <TableHead></TableHead>
                     <TableHead>Ürün Kodu</TableHead>
                     <TableHead>Üretici</TableHead>
+                    <TableHead>Parti</TableHead>
                     <TableHead>Gram</TableHead>
                     <TableHead>Taş Sayısı</TableHead>
                     <TableHead>Toplam Maliyet</TableHead>
@@ -1069,8 +1132,8 @@ export default function AnalysisPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredRecords.map((record) => (
-                    <>
-                      <TableRow key={record.id} data-testid={`row-analysis-${record.id}`}>
+                    <Fragment key={record.id}>
+                      <TableRow data-testid={`row-analysis-${record.id}`}>
                         <TableCell>
                           {record.stones && record.stones.length > 0 && (
                             <Button
@@ -1089,6 +1152,11 @@ export default function AnalysisPage() {
                         </TableCell>
                         <TableCell className="font-medium font-mono">{record.productCode}</TableCell>
                         <TableCell>{record.manufacturer?.name || "-"}</TableCell>
+                        <TableCell>
+                          {record.batch ? (
+                            <Badge variant="outline">#{record.batch.batchNumber}</Badge>
+                          ) : "-"}
+                        </TableCell>
                         <TableCell className="font-mono">{record.totalGrams} gr</TableCell>
                         <TableCell>
                           <Badge variant="secondary">
@@ -1156,7 +1224,7 @@ export default function AnalysisPage() {
                       </TableRow>
                       {expandedRows.has(record.id) && record.stones && record.stones.length > 0 && (
                         <TableRow className="bg-muted/30">
-                          <TableCell colSpan={8} className="p-4">
+                          <TableCell colSpan={9} className="p-4">
                             <div className="rounded-md border bg-background">
                               <Table>
                                 <TableHeader>
@@ -1186,7 +1254,7 @@ export default function AnalysisPage() {
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   ))}
                 </TableBody>
               </Table>
