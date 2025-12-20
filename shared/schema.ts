@@ -21,6 +21,8 @@ export const gemstonePriceLists = pgTable("gemstone_price_lists", {
   id: serial("id").primaryKey(),
   stoneType: text("stone_type").notNull(),
   quality: text("quality"),
+  minCarat: decimal("min_carat", { precision: 6, scale: 4 }),
+  maxCarat: decimal("max_carat", { precision: 6, scale: 4 }),
   pricePerCarat: decimal("price_per_carat", { precision: 10, scale: 2 }).notNull(),
 });
 

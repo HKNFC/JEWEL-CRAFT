@@ -74,6 +74,8 @@ const qualities = ["AAA", "AA", "A", "B", "C"];
 const gemstoneFormSchema = z.object({
   stoneType: z.string().min(1, "Taş türü gerekli"),
   quality: z.string().optional(),
+  minCarat: z.string().optional(),
+  maxCarat: z.string().optional(),
   pricePerCarat: z.string().min(1, "Fiyat gerekli"),
 });
 
@@ -94,6 +96,8 @@ export default function GemstonePricesPage() {
     defaultValues: {
       stoneType: "",
       quality: "",
+      minCarat: "",
+      maxCarat: "",
       pricePerCarat: "",
     },
   });
@@ -152,6 +156,8 @@ export default function GemstonePricesPage() {
     form.reset({
       stoneType: gemstone.stoneType,
       quality: gemstone.quality || "",
+      minCarat: gemstone.minCarat || "",
+      maxCarat: gemstone.maxCarat || "",
       pricePerCarat: gemstone.pricePerCarat,
     });
     setDialogOpen(true);
@@ -159,7 +165,7 @@ export default function GemstonePricesPage() {
 
   const openNewDialog = () => {
     setEditingId(null);
-    form.reset({ stoneType: "", quality: "", pricePerCarat: "" });
+    form.reset({ stoneType: "", quality: "", minCarat: "", maxCarat: "", pricePerCarat: "" });
     setDialogOpen(true);
   };
 
@@ -238,6 +244,46 @@ export default function GemstonePricesPage() {
                     </FormItem>
                   )}
                 />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="minCarat"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Min Karat</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number"
+                            step="0.01"
+                            placeholder="0.10" 
+                            {...field} 
+                            data-testid="input-min-carat"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="maxCarat"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Max Karat</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number"
+                            step="0.01"
+                            placeholder="1.00" 
+                            {...field} 
+                            data-testid="input-max-carat"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <FormField
                   control={form.control}
                   name="pricePerCarat"
@@ -307,6 +353,7 @@ export default function GemstonePricesPage() {
                   <TableRow>
                     <TableHead>Taş Türü</TableHead>
                     <TableHead>Kalite</TableHead>
+                    <TableHead>Boyut (ct)</TableHead>
                     <TableHead>Karat Fiyatı</TableHead>
                     <TableHead className="text-right">İşlemler</TableHead>
                   </TableRow>
@@ -316,6 +363,11 @@ export default function GemstonePricesPage() {
                     <TableRow key={gemstone.id} data-testid={`row-gemstone-${gemstone.id}`}>
                       <TableCell className="font-medium">{gemstone.stoneType}</TableCell>
                       <TableCell>{gemstone.quality || "-"}</TableCell>
+                      <TableCell className="font-mono">
+                        {gemstone.minCarat && gemstone.maxCarat 
+                          ? `${parseFloat(gemstone.minCarat).toFixed(2)} - ${parseFloat(gemstone.maxCarat).toFixed(2)}`
+                          : "-"}
+                      </TableCell>
                       <TableCell className="font-mono">
                         ${parseFloat(gemstone.pricePerCarat).toFixed(2)}/ct
                       </TableCell>
