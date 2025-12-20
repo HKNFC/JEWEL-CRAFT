@@ -47,6 +47,7 @@ export const analysisRecords = pgTable("analysis_records", {
   profitLoss: decimal("profit_loss", { precision: 12, scale: 2 }),
   goldPriceUsed: decimal("gold_price_used", { precision: 12, scale: 2 }),
   usdTryUsed: decimal("usd_try_used", { precision: 10, scale: 4 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const analysisStones = pgTable("analysis_stones", {
@@ -126,7 +127,7 @@ export const batchesRelations = relations(batches, ({ one, many }) => ({
 export const insertManufacturerSchema = createInsertSchema(manufacturers).omit({ id: true });
 export const insertStoneSettingRateSchema = createInsertSchema(stoneSettingRates).omit({ id: true });
 export const insertGemstonePriceListSchema = createInsertSchema(gemstonePriceLists).omit({ id: true });
-export const insertAnalysisRecordSchema = createInsertSchema(analysisRecords).omit({ id: true });
+export const insertAnalysisRecordSchema = createInsertSchema(analysisRecords).omit({ id: true, createdAt: true });
 export const insertAnalysisStoneSchema = createInsertSchema(analysisStones).omit({ id: true });
 export const insertExchangeRateSchema = createInsertSchema(exchangeRates).omit({ id: true, updatedAt: true });
 export const insertRapaportPriceSchema = createInsertSchema(rapaportPrices).omit({ id: true, uploadedAt: true });
