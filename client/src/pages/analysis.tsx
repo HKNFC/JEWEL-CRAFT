@@ -56,7 +56,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import type { AnalysisRecordWithRelations, Manufacturer, StoneSettingRate, GemstonePriceList, Batch } from "@shared/schema";
+import type { AnalysisRecordWithRelations, Manufacturer, StoneSettingRate, GemstonePriceList, Batch, BatchWithRelations } from "@shared/schema";
 
 const analysisFormSchema = z.object({
   manufacturerId: z.string().min(1, "Üretici seçiniz"),
@@ -108,6 +108,9 @@ export default function AnalysisPage() {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterManufacturer, setFilterManufacturer] = useState<string>("");
+  const [filterBatch, setFilterBatch] = useState<string>("");
+  const [filterDate, setFilterDate] = useState<string>("");
   const [stones, setStones] = useState<StoneEntry[]>([]);
   const [selectedRecord, setSelectedRecord] = useState<AnalysisRecordWithRelations | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
@@ -148,6 +151,10 @@ export default function AnalysisPage() {
   const { data: batches, refetch: refetchBatches } = useQuery<Batch[]>({
     queryKey: ["/api/batches/manufacturer", selectedManufacturer],
     enabled: !!selectedManufacturer,
+  });
+
+  const { data: allBatches } = useQuery<BatchWithRelations[]>({
+    queryKey: ["/api/batches"],
   });
 
   const createBatchMutation = useMutation({
@@ -689,10 +696,14 @@ export default function AnalysisPage() {
     setExpandedRows(newExpanded);
   };
 
-  const filteredRecords = analysisRecords?.filter(r => 
-    r.productCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    r.manufacturer?.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredRecords = analysisRecords?.filter(r => {
+    const matchesSearch = r.productCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.manufacturer?.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesManufacturer = !filterManufacturer || filterManufacturer === "all" || r.manufacturerId?.toString() === filterManufacturer;
+    const matchesBatch = !filterBatch || filterBatch === "all" || r.batchId?.toString() === filterBatch;
+    const matchesDate = !filterDate || (r.createdAt && new Date(r.createdAt).toISOString().split('T')[0] === filterDate);
+    return matchesSearch && matchesManufacturer && matchesBatch && matchesDate;
+  });
 
   const totalStoneCost = stones.reduce((sum, s) => sum + (s.totalStoneCost || 0), 0);
   const baseStoneTypes = gemstonePrices?.map(g => g.stoneType).filter((v, i, a) => a.indexOf(v) === i) || [];
@@ -1390,15 +1401,62 @@ export default function AnalysisPage() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg">Kayıtlı Analizler</CardTitle>
-          <div className="flex items-center gap-2 mt-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-wrap items-center gap-3 mt-2">
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Ürün kodu veya üretici ara..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-[200px]"
+                data-testid="input-search-analysis"
+              />
+            </div>
+            <Select value={filterManufacturer} onValueChange={setFilterManufacturer}>
+              <SelectTrigger className="w-[180px]" data-testid="select-filter-manufacturer">
+                <SelectValue placeholder="Tüm üreticiler" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tüm üreticiler</SelectItem>
+                {manufacturers?.map((m) => (
+                  <SelectItem key={m.id} value={m.id.toString()}>{m.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterBatch} onValueChange={setFilterBatch}>
+              <SelectTrigger className="w-[150px]" data-testid="select-filter-batch">
+                <SelectValue placeholder="Tüm partiler" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tüm partiler</SelectItem>
+                {allBatches?.map((b) => (
+                  <SelectItem key={b.id} value={b.id.toString()}>
+                    #{b.batchNumber} - {b.manufacturer?.name || "?"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Input
-              placeholder="Ürün kodu veya üretici ara..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="max-w-sm"
-              data-testid="input-search-analysis"
+              type="date"
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              className="w-[160px]"
+              data-testid="input-filter-date"
             />
+            {(filterManufacturer || filterBatch || filterDate) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setFilterManufacturer("");
+                  setFilterBatch("");
+                  setFilterDate("");
+                }}
+                data-testid="button-clear-filters"
+              >
+                Filtreleri Temizle
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -1414,6 +1472,7 @@ export default function AnalysisPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead></TableHead>
+                    <TableHead>Tarih</TableHead>
                     <TableHead>Ürün Kodu</TableHead>
                     <TableHead>Üretici</TableHead>
                     <TableHead>Parti</TableHead>
@@ -1443,6 +1502,9 @@ export default function AnalysisPage() {
                               )}
                             </Button>
                           )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {record.createdAt ? new Date(record.createdAt).toLocaleDateString('tr-TR') : "-"}
                         </TableCell>
                         <TableCell className="font-medium font-mono">{record.productCode}</TableCell>
                         <TableCell>{record.manufacturer?.name || "-"}</TableCell>
