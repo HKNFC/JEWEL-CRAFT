@@ -62,6 +62,7 @@ const analysisFormSchema = z.object({
   manufacturerId: z.string().min(1, "Üretici seçiniz"),
   batchId: z.string().optional(),
   productCode: z.string().min(1, "Ürün kodu gerekli"),
+  productType: z.string().optional(),
   totalGrams: z.string().min(1, "Toplam gram gerekli"),
   goldPurity: z.string().default("24"),
   goldLaborCost: z.string().optional(),
@@ -71,6 +72,20 @@ const analysisFormSchema = z.object({
   certificateAmount: z.string().optional(),
   manufacturerPrice: z.string().optional(),
 });
+
+const PRODUCT_TYPES = [
+  "Yüzük",
+  "Kolye",
+  "Bileklik",
+  "Küpe",
+  "Broş",
+  "Bilezik",
+  "Zincir",
+  "Tektaş",
+  "Beştaş",
+  "Set",
+  "Diğer",
+];
 
 const GOLD_PURITIES = [
   { value: "24", label: "24 Ayar (Saf Altın)", factor: 1.000 },
@@ -432,6 +447,7 @@ export default function AnalysisPage() {
       manufacturerId: "",
       batchId: "",
       productCode: "",
+      productType: "",
       totalGrams: "",
       goldPurity: "24",
       goldLaborCost: "",
@@ -568,7 +584,7 @@ export default function AnalysisPage() {
   const onSubmit = (data: AnalysisFormValues) => {
     const formData = { 
       ...data,
-      batchId: selectedBatch ? parseInt(selectedBatch) : undefined,
+      batchId: selectedBatch || undefined,
       firePercentage: fireValue[0].toString(),
       rawMaterialCost: costs.rawMaterialCost.toFixed(2),
       laborCost: costs.laborCost.toFixed(2),
@@ -654,6 +670,7 @@ export default function AnalysisPage() {
       manufacturerId: record.manufacturerId?.toString() || "",
       batchId: record.batchId?.toString() || "",
       productCode: record.productCode,
+      productType: record.productType || "",
       totalGrams: record.totalGrams,
       goldPurity: record.goldPurity || "24",
       goldLaborCost: record.goldLaborCost || "",
@@ -812,7 +829,7 @@ export default function AnalysisPage() {
           {showForm && (
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 p-4 bg-muted/30 rounded-lg">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 p-4 bg-muted/30 rounded-lg">
                   <FormField
                     control={form.control}
                     name="productCode"
@@ -826,6 +843,28 @@ export default function AnalysisPage() {
                             data-testid="input-product-code"
                           />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="productType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Ürün Cinsi</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-product-type">
+                              <SelectValue placeholder="Seçin" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {PRODUCT_TYPES.map(type => (
+                              <SelectItem key={type} value={type}>{type}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -1262,6 +1301,10 @@ export default function AnalysisPage() {
                   <p className="font-medium">{selectedRecord.productCode}</p>
                 </div>
                 <div>
+                  <p className="text-sm text-muted-foreground">Ürün Cinsi</p>
+                  <p className="font-medium">{selectedRecord.productType || "-"}</p>
+                </div>
+                <div>
                   <p className="text-sm text-muted-foreground">Toplam Gram</p>
                   <p className="font-medium font-mono">{selectedRecord.totalGrams} gr</p>
                 </div>
@@ -1474,6 +1517,7 @@ export default function AnalysisPage() {
                     <TableHead></TableHead>
                     <TableHead>Tarih</TableHead>
                     <TableHead>Ürün Kodu</TableHead>
+                    <TableHead>Ürün Cinsi</TableHead>
                     <TableHead>Üretici</TableHead>
                     <TableHead>Parti</TableHead>
                     <TableHead>Gram</TableHead>
@@ -1507,6 +1551,7 @@ export default function AnalysisPage() {
                           {record.createdAt ? new Date(record.createdAt).toLocaleDateString('tr-TR') : "-"}
                         </TableCell>
                         <TableCell className="font-medium font-mono">{record.productCode}</TableCell>
+                        <TableCell>{record.productType || "-"}</TableCell>
                         <TableCell>{record.manufacturer?.name || "-"}</TableCell>
                         <TableCell>
                           {record.batch ? (
