@@ -110,12 +110,13 @@ export async function registerRoutes(
 
   app.patch("/api/auth/profile", requireAuth, async (req, res) => {
     try {
-      const { companyName, fullName, email, emailFromAddress } = req.body;
+      const { companyName, fullName, email, emailFromAddress, gender } = req.body;
       const user = await storage.updateUser(req.session.userId!, {
         companyName,
         fullName,
         email,
         emailFromAddress,
+        gender,
       });
       if (!user) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });

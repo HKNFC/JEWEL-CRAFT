@@ -2,23 +2,42 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DollarSign, Coins } from "lucide-react";
-import type { ExchangeRate } from "@shared/schema";
+import type { ExchangeRate, User } from "@shared/schema";
 
 export default function Dashboard() {
   const { data: latestRate, isLoading } = useQuery<ExchangeRate | null>({
     queryKey: ["/api/exchange-rates/latest"],
   });
 
+  const { data: currentUser } = useQuery<User>({
+    queryKey: ["/api/auth/me"],
+  });
+
   const formatDate = (dateString: string | Date) => {
     return new Date(dateString).toLocaleString("tr-TR");
   };
 
+  const getTitle = () => {
+    if (!currentUser?.fullName) return "";
+    const firstName = currentUser.fullName.split(" ")[0];
+    const title = currentUser.gender === "female" ? "Hn." : "Bey";
+    return `Sayın ${firstName} ${title}`;
+  };
+
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold" data-testid="text-dashboard-title">Dashboard</h1>
-        <p className="text-muted-foreground">Güncel döviz ve altın kurları</p>
-      </div>
+      <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
+        <CardContent className="pt-6">
+          <div className="space-y-3">
+            <h2 className="text-xl font-semibold text-foreground" data-testid="text-welcome-title">
+              {getTitle()}
+            </h2>
+            <p className="text-muted-foreground leading-relaxed" data-testid="text-motivation-message">
+              Güven kontrolle başlar. Analizlerinizdeki titizlik, üreticilerimizle olan bağımızı daha şeffaf ve karlı hale getiriyor. Analizdeki her saniye, gelecekte kazanılacak binlerce dolardır.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>

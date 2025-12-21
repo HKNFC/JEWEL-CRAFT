@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, User, Lock, Mail } from "lucide-react";
 
 export default function SettingsPage() {
@@ -17,6 +18,7 @@ export default function SettingsPage() {
     fullName: user?.fullName || "",
     email: user?.email || "",
     emailFromAddress: user?.emailFromAddress || "",
+    gender: user?.gender || "male",
   });
 
   const [passwordForm, setPasswordForm] = useState({
@@ -147,6 +149,21 @@ export default function SettingsPage() {
                   onChange={(e) => setProfileForm({ ...profileForm, emailFromAddress: e.target.value })}
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="gender">Cinsiyet</Label>
+              <Select
+                value={profileForm.gender}
+                onValueChange={(value) => setProfileForm({ ...profileForm, gender: value })}
+              >
+                <SelectTrigger id="gender" data-testid="select-gender">
+                  <SelectValue placeholder="Cinsiyet seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Erkek</SelectItem>
+                  <SelectItem value="female">Kadın</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <Button type="submit" disabled={updateProfilePending} data-testid="button-save-profile">
               {updateProfilePending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
