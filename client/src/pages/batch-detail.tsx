@@ -59,6 +59,16 @@ export default function BatchDetailPage() {
     return { type: types || "-", cost };
   };
 
+  const calculateTotalCost = (record: AnalysisRecordWithRelations) => {
+    const rawMaterial = parseFloat(record.rawMaterialCost || "0");
+    const labor = parseFloat(record.laborCost || "0");
+    const polish = parseFloat(record.polishAmount || "0");
+    const certificate = parseFloat(record.certificateAmount || "0");
+    const setting = parseFloat(record.totalSettingCost || "0");
+    const stone = parseFloat(record.totalStoneCost || "0");
+    return rawMaterial + labor + polish + certificate + setting + stone;
+  };
+
   const calculateDiff = (analysis: number, manufacturer: number) => {
     if (analysis === 0) return 0;
     return ((manufacturer - analysis) / analysis) * 100;
@@ -71,7 +81,7 @@ export default function BatchDetailPage() {
     setting: records.reduce((sum, r) => sum + parseFloat(r.totalSettingCost || "0"), 0),
     polish: records.reduce((sum, r) => sum + parseFloat(r.polishAmount || "0"), 0),
     certificate: records.reduce((sum, r) => sum + parseFloat(r.certificateAmount || "0"), 0),
-    analysis: records.reduce((sum, r) => sum + parseFloat(r.totalCost || "0"), 0),
+    analysis: records.reduce((sum, r) => sum + calculateTotalCost(r), 0),
     manufacturer: records.reduce((sum, r) => sum + parseFloat(r.manufacturerPrice || "0"), 0),
   };
 
@@ -95,7 +105,7 @@ export default function BatchDetailPage() {
 
     const tableData = records.map((record) => {
       const stoneInfo = getStoneInfo(record);
-      const analysis = parseFloat(record.totalCost || "0");
+      const analysis = calculateTotalCost(record);
       const manufacturer = parseFloat(record.manufacturerPrice || "0");
       const diff = calculateDiff(analysis, manufacturer);
       
@@ -179,7 +189,7 @@ export default function BatchDetailPage() {
 
     const rows = records.map((record) => {
       const stoneInfo = getStoneInfo(record);
-      const analysis = parseFloat(record.totalCost || "0");
+      const analysis = calculateTotalCost(record);
       const manufacturer = parseFloat(record.manufacturerPrice || "0");
       const diff = calculateDiff(analysis, manufacturer);
       
@@ -358,7 +368,7 @@ export default function BatchDetailPage() {
               <TableBody>
                 {records.map((record) => {
                   const stoneInfo = getStoneInfo(record);
-                  const analysis = parseFloat(record.totalCost || "0");
+                  const analysis = calculateTotalCost(record);
                   const manufacturer = parseFloat(record.manufacturerPrice || "0");
                   const diff = calculateDiff(analysis, manufacturer);
                   const isDiffPositive = diff > 0;

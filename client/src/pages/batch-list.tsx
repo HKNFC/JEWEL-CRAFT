@@ -21,10 +21,20 @@ export default function BatchListPage() {
     return b.batchNumber - a.batchNumber;
   }) || [];
 
+  const calculateTotalCost = (record: any) => {
+    const rawMaterial = parseFloat(record.rawMaterialCost || "0");
+    const labor = parseFloat(record.laborCost || "0");
+    const polish = parseFloat(record.polishAmount || "0");
+    const certificate = parseFloat(record.certificateAmount || "0");
+    const setting = parseFloat(record.totalSettingCost || "0");
+    const stone = parseFloat(record.totalStoneCost || "0");
+    return rawMaterial + labor + polish + certificate + setting + stone;
+  };
+
   const getBatchStats = (batch: BatchWithRelations) => {
     const records = batch.analysisRecords || [];
     const productCount = records.length;
-    const totalAnalysis = records.reduce((sum, r) => sum + parseFloat(r.totalCost || "0"), 0);
+    const totalAnalysis = records.reduce((sum, r) => sum + calculateTotalCost(r), 0);
     const totalManufacturer = records.reduce((sum, r) => sum + parseFloat(r.manufacturerPrice || "0"), 0);
     const totalDiff = totalManufacturer > 0 && totalAnalysis > 0 
       ? ((totalManufacturer - totalAnalysis) / totalAnalysis) * 100 
