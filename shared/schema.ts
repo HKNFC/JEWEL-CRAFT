@@ -11,9 +11,17 @@ export const users = pgTable("users", {
   fullName: text("full_name"),
   email: text("email"),
   gender: text("gender").default("male"),
+  isAdmin: boolean("is_admin").default(false),
   emailApiKey: text("email_api_key"),
   emailFromAddress: text("email_from_address"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const adminSettings = pgTable("admin_settings", {
+  id: serial("id").primaryKey(),
+  ownerEmail: text("owner_email"),
+  ccEmails: text("cc_emails").array(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const manufacturers = pgTable("manufacturers", {
@@ -151,6 +159,7 @@ export const batchesRelations = relations(batches, ({ one, many }) => ({
 }));
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, passwordHash: true });
+export const insertAdminSettingsSchema = createInsertSchema(adminSettings).omit({ id: true, updatedAt: true });
 export const insertManufacturerSchema = createInsertSchema(manufacturers).omit({ id: true });
 export const insertStoneSettingRateSchema = createInsertSchema(stoneSettingRates).omit({ id: true });
 export const insertGemstonePriceListSchema = createInsertSchema(gemstonePriceLists).omit({ id: true });
@@ -163,6 +172,9 @@ export const insertBatchSchema = createInsertSchema(batches).omit({ id: true, cr
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type AdminSettings = typeof adminSettings.$inferSelect;
+export type InsertAdminSettings = z.infer<typeof insertAdminSettingsSchema>;
 
 export type Manufacturer = typeof manufacturers.$inferSelect;
 export type InsertManufacturer = z.infer<typeof insertManufacturerSchema>;

@@ -9,6 +9,7 @@ import {
   rapaportPrices,
   rapaportDiscountRates,
   batches,
+  adminSettings,
   type User,
   type InsertUser,
   type Manufacturer, 
@@ -31,6 +32,8 @@ import {
   type Batch,
   type InsertBatch,
   type BatchWithRelations,
+  type AdminSettings,
+  type InsertAdminSettings,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
@@ -88,6 +91,9 @@ export interface IStorage {
   updateRapaportDiscountRate(id: number, data: Partial<InsertRapaportDiscountRate>): Promise<RapaportDiscountRate | undefined>;
   deleteRapaportDiscountRate(id: number): Promise<boolean>;
   findRapaportDiscountRate(carat: number): Promise<RapaportDiscountRate | undefined>;
+
+  getAdminSettings(): Promise<AdminSettings | undefined>;
+  updateAdminSettings(data: InsertAdminSettings): Promise<AdminSettings>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -451,6 +457,25 @@ export class DatabaseStorage implements IStorage {
         gte(rapaportDiscountRates.maxCarat, caratStr)
       ));
     return rate || undefined;
+  }
+
+  async getAdminSettings(): Promise<AdminSettings | undefined> {
+    const [settings] = await db.select().from(adminSettings).limit(1);
+    return settings || undefined;
+  }
+
+  async updateAdminSettings(data: InsertAdminSettings): Promise<AdminSettings> {
+    const existing = await this.getAdminSettings();
+    if (existing) {
+      const [updated] = await db.update(adminSettings)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(adminSettings.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(adminSettings).values(data).returning();
+      return created;
+    }
   }
 }
 
