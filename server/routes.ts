@@ -748,6 +748,40 @@ export async function registerRoutes(
     }
   });
 
+  const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Oturum açmanız gerekiyor" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user?.isAdmin) {
+      return res.status(403).json({ error: "Bu işlem için admin yetkisi gerekiyor" });
+    }
+    next();
+  };
+
+  app.get("/api/admin/settings", requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getAdminSettings();
+      res.json(settings || { ownerEmail: null, ccEmails: [] });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch admin settings" });
+    }
+  });
+
+  app.patch("/api/admin/settings", requireAdmin, async (req, res) => {
+    try {
+      const { ownerEmail, ccEmails } = req.body;
+      const settings = await storage.updateAdminSettings({
+        ownerEmail: ownerEmail || null,
+        ccEmails: ccEmails || [],
+      });
+      res.json(settings);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to update admin settings" });
+    }
+  });
+
   app.post("/api/send-batch-report", requireAuth, async (req, res) => {
     try {
       const { batchId, email, subject, htmlContent } = req.body;
@@ -766,22 +800,42 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Email API anahtarı ayarlanmamış. Lütfen Ayarlar sayfasından API anahtarınızı girin." });
       }
 
+      const adminSettings = await storage.getAdminSettings();
+      const ccList: string[] = [];
+      if (adminSettings?.ownerEmail) {
+        ccList.push(adminSettings.ownerEmail);
+      }
+      if (adminSettings?.ccEmails && adminSettings.ccEmails.length > 0) {
+        ccList.push(...adminSettings.ccEmails);
+      }
+
       const resend = new Resend(apiKey);
       const fromAddress = user.emailFromAddress || "Maliyet Analizi <onboarding@resend.dev>";
       
-      const { data, error } = await resend.emails.send({
+      const emailOptions: any = {
         from: fromAddress,
         to: [email],
         subject: subject,
         html: htmlContent,
-      });
+      };
+
+      if (ccList.length > 0) {
+        emailOptions.cc = ccList;
+      }
+
+      const { data, error } = await resend.emails.send(emailOptions);
 
       if (error) {
         console.error("Email send error:", error);
         return res.status(500).json({ error: "E-posta gönderilemedi", details: error.message });
       }
 
-      res.json({ success: true, messageId: data?.id });
+      res.json({ 
+        success: true, 
+        messageId: data?.id,
+        sentTo: email,
+        ccList: ccList,
+      });
     } catch (error) {
       console.error("Email send error:", error);
       res.status(500).json({ error: "E-posta gönderilemedi" });
