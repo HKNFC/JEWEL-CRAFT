@@ -12,6 +12,7 @@ export const manufacturers = pgTable("manufacturers", {
 
 export const stoneSettingRates = pgTable("stone_setting_rates", {
   id: serial("id").primaryKey(),
+  stoneCategory: text("stone_category").notNull().default("diamond"),
   minCarat: decimal("min_carat", { precision: 6, scale: 4 }).notNull(),
   maxCarat: decimal("max_carat", { precision: 6, scale: 4 }).notNull(),
   pricePerStone: decimal("price_per_stone", { precision: 10, scale: 2 }).notNull(),
