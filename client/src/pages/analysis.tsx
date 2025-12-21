@@ -261,32 +261,71 @@ export default function AnalysisPage() {
     yPos = (doc as any).lastAutoTable.finalY + 10;
 
     if (record.stones && record.stones.length > 0) {
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.text("Tas Detaylari", margin, yPos);
-      yPos += 4;
+      const isDiamond = (stoneType: string) => {
+        const lower = stoneType.toLowerCase();
+        return lower.includes("elmas") || lower.includes("diamond") || lower.includes("pırlanta") || lower.includes("pirlanta");
+      };
 
-      const stoneData = record.stones.map(stone => [
-        stone.stoneType,
-        `${stone.caratSize} ct`,
-        stone.quantity.toString(),
-        stone.rapaportPrice ? `$${parseFloat(stone.rapaportPrice).toFixed(0)}/ct` : "-",
-        stone.discountPercent ? `${stone.discountPercent}%` : "-",
-        stone.settingCost ? `$${parseFloat(stone.settingCost).toFixed(2)}` : "-",
-        `$${parseFloat(stone.totalStoneCost || "0").toFixed(2)}`,
-      ]);
+      const diamondStones = record.stones.filter(s => isDiamond(s.stoneType));
+      const semiPreciousStones = record.stones.filter(s => !isDiamond(s.stoneType));
 
-      autoTable(doc, {
-        startY: yPos,
-        head: [["Tas Tipi", "Karat", "Adet", "Rapaport", "Iskonto", "Mihlama", "Maliyet"]],
-        body: stoneData,
-        theme: "striped",
-        headStyles: { fillColor: [51, 51, 51] },
-        margin: { left: margin, right: margin },
-        styles: { fontSize: 8 },
-      });
+      if (diamondStones.length > 0) {
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("Pirlanta Detaylari", margin, yPos);
+        yPos += 4;
 
-      yPos = (doc as any).lastAutoTable.finalY + 10;
+        const diamondData = diamondStones.map(stone => [
+          stone.stoneType,
+          `${stone.caratSize} ct`,
+          stone.color || "-",
+          stone.clarity || "-",
+          stone.quantity.toString(),
+          stone.rapaportPrice ? `$${parseFloat(stone.rapaportPrice).toFixed(0)}/ct` : "-",
+          stone.discountPercent ? `${stone.discountPercent}%` : "-",
+          stone.settingCost ? `$${parseFloat(stone.settingCost).toFixed(2)}` : "-",
+          `$${parseFloat(stone.totalStoneCost || "0").toFixed(2)}`,
+        ]);
+
+        autoTable(doc, {
+          startY: yPos,
+          head: [["Tas Tipi", "Karat", "Renk", "Temizlik", "Adet", "Rapaport", "Iskonto", "Mihlama", "Maliyet"]],
+          body: diamondData,
+          theme: "striped",
+          headStyles: { fillColor: [51, 51, 51] },
+          margin: { left: margin, right: margin },
+          styles: { fontSize: 7 },
+        });
+
+        yPos = (doc as any).lastAutoTable.finalY + 10;
+      }
+
+      if (semiPreciousStones.length > 0) {
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("Yari Degerli Taslar", margin, yPos);
+        yPos += 4;
+
+        const semiPreciousData = semiPreciousStones.map(stone => [
+          stone.stoneType,
+          `${stone.caratSize} ct`,
+          stone.quantity.toString(),
+          stone.settingCost ? `$${parseFloat(stone.settingCost).toFixed(2)}` : "-",
+          `$${parseFloat(stone.totalStoneCost || "0").toFixed(2)}`,
+        ]);
+
+        autoTable(doc, {
+          startY: yPos,
+          head: [["Tas Tipi", "Karat", "Adet", "Mihlama", "Maliyet"]],
+          body: semiPreciousData,
+          theme: "striped",
+          headStyles: { fillColor: [51, 51, 51] },
+          margin: { left: margin, right: margin },
+          styles: { fontSize: 8 },
+        });
+
+        yPos = (doc as any).lastAutoTable.finalY + 10;
+      }
     }
 
     doc.setDrawColor(200, 200, 200);
