@@ -62,6 +62,7 @@ All routes prefixed with `/api/`:
 - `/stone-setting-rates` - CRUD for setting rate tiers
 - `/gemstone-prices` - CRUD for gemstone price lists
 - `/analysis-records` - CRUD for analysis records with nested stones
+- `/send-batch-report` - POST endpoint to send batch reports via email (uses Resend)
 
 ### Build System
 - Development: `tsx` for TypeScript execution with Vite dev server
@@ -79,6 +80,10 @@ All routes prefixed with `/api/`:
 - **Lucide React**: Icon library
 - **shadcn/ui**: Pre-built component patterns using Radix + Tailwind
 - **jsPDF + jspdf-autotable**: PDF report generation for analysis records
+
+### Email Service
+- **Resend**: Email service for sending batch reports to manufacturers
+- **API Key**: Stored in `RESEND_API_KEY` secret
 
 ### Development Tools
 - **Vite**: Frontend build tool with React plugin

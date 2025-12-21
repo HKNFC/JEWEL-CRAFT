@@ -11,6 +11,7 @@ import {
   insertRapaportDiscountRateSchema,
 } from "@shared/schema";
 import { fetchGoldPrices } from "./goldapi";
+import { Resend } from "resend";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -588,6 +589,40 @@ export async function registerRoutes(
       res.json(rate || null);
     } catch (error) {
       res.status(500).json({ error: "Failed to find discount rate" });
+    }
+  });
+
+  app.post("/api/send-batch-report", async (req, res) => {
+    try {
+      const { batchId, email, subject, htmlContent } = req.body;
+      
+      if (!email || !subject || !htmlContent) {
+        return res.status(400).json({ error: "Email, subject, and htmlContent are required" });
+      }
+
+      const apiKey = process.env.RESEND_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "Email service not configured" });
+      }
+
+      const resend = new Resend(apiKey);
+      
+      const { data, error } = await resend.emails.send({
+        from: "Maliyet Analizi <onboarding@resend.dev>",
+        to: [email],
+        subject: subject,
+        html: htmlContent,
+      });
+
+      if (error) {
+        console.error("Email send error:", error);
+        return res.status(500).json({ error: "Failed to send email", details: error.message });
+      }
+
+      res.json({ success: true, messageId: data?.id });
+    } catch (error) {
+      console.error("Email send error:", error);
+      res.status(500).json({ error: "Failed to send email" });
     }
   });
 
