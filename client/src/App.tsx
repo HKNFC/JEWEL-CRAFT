@@ -20,6 +20,7 @@ import BatchDetailPage from "@/pages/batch-detail";
 import RapaportDiscountRatesPage from "@/pages/rapaport-discount-rates";
 import LoginPage from "@/pages/login";
 import SettingsPage from "@/pages/settings";
+import AdminPage from "@/pages/admin";
 import { Loader2 } from "lucide-react";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -68,6 +69,7 @@ function AuthenticatedLayout() {
               <Route path="/batches" component={() => <ProtectedRoute component={BatchListPage} />} />
               <Route path="/batch/:id" component={() => <ProtectedRoute component={BatchDetailPage} />} />
               <Route path="/settings" component={() => <ProtectedRoute component={SettingsPage} />} />
+              <Route path="/admin" component={() => <ProtectedRoute component={AdminPage} />} />
               <Route component={NotFound} />
             </Switch>
           </main>

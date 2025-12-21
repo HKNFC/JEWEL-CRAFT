@@ -12,7 +12,8 @@ import {
   Percent,
   Settings,
   LogOut,
-  Loader2
+  Loader2,
+  Shield
 } from "lucide-react";
 import {
   Sidebar,
@@ -123,7 +124,7 @@ export function AppSidebar() {
               <p className="font-medium truncate">{user.companyName}</p>
               <p className="text-muted-foreground text-xs truncate">{user.username}</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button
                 variant="ghost"
                 size="sm"
@@ -135,6 +136,19 @@ export function AppSidebar() {
                   Ayarlar
                 </Link>
               </Button>
+              {user.isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex-1 justify-start"
+                  asChild
+                >
+                  <Link href="/admin" data-testid="link-admin">
+                    <Shield className="h-4 w-4 mr-2" />
+                    Admin
+                  </Link>
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
