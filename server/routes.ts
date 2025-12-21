@@ -8,6 +8,7 @@ import {
   insertAnalysisRecordSchema,
   insertExchangeRateSchema,
   insertBatchSchema,
+  insertRapaportDiscountRateSchema,
 } from "@shared/schema";
 import { fetchGoldPrices } from "./goldapi";
 
@@ -516,6 +517,77 @@ export async function registerRoutes(
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete batch" });
+    }
+  });
+
+  app.get("/api/rapaport-discount-rates", async (req, res) => {
+    try {
+      const rates = await storage.getRapaportDiscountRates();
+      res.json(rates);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch rapaport discount rates" });
+    }
+  });
+
+  app.get("/api/rapaport-discount-rates/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const rate = await storage.getRapaportDiscountRate(id);
+      if (!rate) {
+        return res.status(404).json({ error: "Rate not found" });
+      }
+      res.json(rate);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch rate" });
+    }
+  });
+
+  app.post("/api/rapaport-discount-rates", async (req, res) => {
+    try {
+      const parsed = insertRapaportDiscountRateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.issues });
+      }
+      const rate = await storage.createRapaportDiscountRate(parsed.data);
+      res.status(201).json(rate);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create rate" });
+    }
+  });
+
+  app.patch("/api/rapaport-discount-rates/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const rate = await storage.updateRapaportDiscountRate(id, req.body);
+      if (!rate) {
+        return res.status(404).json({ error: "Rate not found" });
+      }
+      res.json(rate);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update rate" });
+    }
+  });
+
+  app.delete("/api/rapaport-discount-rates/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteRapaportDiscountRate(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Rate not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete rate" });
+    }
+  });
+
+  app.get("/api/rapaport-discount-rates/find/:carat", async (req, res) => {
+    try {
+      const carat = parseFloat(req.params.carat);
+      const rate = await storage.findRapaportDiscountRate(carat);
+      res.json(rate || null);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to find discount rate" });
     }
   });
 

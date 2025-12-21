@@ -6,6 +6,7 @@ import {
   analysisStones,
   exchangeRates,
   rapaportPrices,
+  rapaportDiscountRates,
   batches,
   type Manufacturer, 
   type InsertManufacturer,
@@ -22,6 +23,8 @@ import {
   type InsertExchangeRate,
   type RapaportPrice,
   type InsertRapaportPrice,
+  type RapaportDiscountRate,
+  type InsertRapaportDiscountRate,
   type Batch,
   type InsertBatch,
   type BatchWithRelations,
@@ -70,6 +73,13 @@ export interface IStorage {
   createBatch(manufacturerId: number): Promise<Batch>;
   deleteBatch(id: number): Promise<boolean>;
   getNextBatchNumber(manufacturerId: number): Promise<number>;
+
+  getRapaportDiscountRates(): Promise<RapaportDiscountRate[]>;
+  getRapaportDiscountRate(id: number): Promise<RapaportDiscountRate | undefined>;
+  createRapaportDiscountRate(data: InsertRapaportDiscountRate): Promise<RapaportDiscountRate>;
+  updateRapaportDiscountRate(id: number, data: Partial<InsertRapaportDiscountRate>): Promise<RapaportDiscountRate | undefined>;
+  deleteRapaportDiscountRate(id: number): Promise<boolean>;
+  findRapaportDiscountRate(carat: number): Promise<RapaportDiscountRate | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -379,6 +389,40 @@ export class DatabaseStorage implements IStorage {
   async deleteBatch(id: number): Promise<boolean> {
     const result = await db.delete(batches).where(eq(batches.id, id)).returning();
     return result.length > 0;
+  }
+
+  async getRapaportDiscountRates(): Promise<RapaportDiscountRate[]> {
+    return db.select().from(rapaportDiscountRates);
+  }
+
+  async getRapaportDiscountRate(id: number): Promise<RapaportDiscountRate | undefined> {
+    const [rate] = await db.select().from(rapaportDiscountRates).where(eq(rapaportDiscountRates.id, id));
+    return rate || undefined;
+  }
+
+  async createRapaportDiscountRate(data: InsertRapaportDiscountRate): Promise<RapaportDiscountRate> {
+    const [rate] = await db.insert(rapaportDiscountRates).values(data).returning();
+    return rate;
+  }
+
+  async updateRapaportDiscountRate(id: number, data: Partial<InsertRapaportDiscountRate>): Promise<RapaportDiscountRate | undefined> {
+    const [rate] = await db.update(rapaportDiscountRates).set(data).where(eq(rapaportDiscountRates.id, id)).returning();
+    return rate || undefined;
+  }
+
+  async deleteRapaportDiscountRate(id: number): Promise<boolean> {
+    const result = await db.delete(rapaportDiscountRates).where(eq(rapaportDiscountRates.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async findRapaportDiscountRate(carat: number): Promise<RapaportDiscountRate | undefined> {
+    const caratStr = carat.toString();
+    const [rate] = await db.select().from(rapaportDiscountRates)
+      .where(and(
+        lte(rapaportDiscountRates.minCarat, caratStr),
+        gte(rapaportDiscountRates.maxCarat, caratStr)
+      ));
+    return rate || undefined;
   }
 }
 

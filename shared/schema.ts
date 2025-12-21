@@ -88,6 +88,13 @@ export const rapaportPrices = pgTable("rapaport_prices", {
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
 });
 
+export const rapaportDiscountRates = pgTable("rapaport_discount_rates", {
+  id: serial("id").primaryKey(),
+  minCarat: decimal("min_carat", { precision: 6, scale: 4 }).notNull(),
+  maxCarat: decimal("max_carat", { precision: 6, scale: 4 }).notNull(),
+  discountPercent: decimal("discount_percent", { precision: 5, scale: 2 }).notNull(),
+});
+
 export const batches = pgTable("batches", {
   id: serial("id").primaryKey(),
   manufacturerId: integer("manufacturer_id").references(() => manufacturers.id).notNull(),
@@ -133,6 +140,7 @@ export const insertAnalysisRecordSchema = createInsertSchema(analysisRecords).om
 export const insertAnalysisStoneSchema = createInsertSchema(analysisStones).omit({ id: true });
 export const insertExchangeRateSchema = createInsertSchema(exchangeRates).omit({ id: true, updatedAt: true });
 export const insertRapaportPriceSchema = createInsertSchema(rapaportPrices).omit({ id: true, uploadedAt: true });
+export const insertRapaportDiscountRateSchema = createInsertSchema(rapaportDiscountRates).omit({ id: true });
 export const insertBatchSchema = createInsertSchema(batches).omit({ id: true, createdAt: true });
 
 export type Manufacturer = typeof manufacturers.$inferSelect;
@@ -155,6 +163,9 @@ export type InsertExchangeRate = z.infer<typeof insertExchangeRateSchema>;
 
 export type RapaportPrice = typeof rapaportPrices.$inferSelect;
 export type InsertRapaportPrice = z.infer<typeof insertRapaportPriceSchema>;
+
+export type RapaportDiscountRate = typeof rapaportDiscountRates.$inferSelect;
+export type InsertRapaportDiscountRate = z.infer<typeof insertRapaportDiscountRateSchema>;
 
 export type Batch = typeof batches.$inferSelect;
 export type InsertBatch = z.infer<typeof insertBatchSchema>;
