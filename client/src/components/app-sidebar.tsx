@@ -83,7 +83,12 @@ export function AppSidebar() {
   const { user, logout, logoutPending } = useAuth();
 
   const handleLogout = async () => {
-    await logout();
+    try {
+      await logout();
+      window.location.href = "/login";
+    } catch (error) {
+      window.location.href = "/login";
+    }
   };
 
   return (
