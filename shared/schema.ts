@@ -7,6 +7,10 @@ export const manufacturers = pgTable("manufacturers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   contact: text("contact"),
+  email: text("email"),
+  phone: text("phone"),
+  contactPerson: text("contact_person"),
+  address: text("address"),
   notes: text("notes"),
 });
 

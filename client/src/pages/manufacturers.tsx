@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Pencil, Trash2, Factory, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Factory, Search, Mail, Phone, User, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,10 +45,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { Manufacturer } from "@shared/schema";
 
 const manufacturerFormSchema = z.object({
   name: z.string().min(1, "Üretici adı gereklidir"),
+  email: z.string().email("Geçerli bir e-posta girin").optional().or(z.literal("")),
+  phone: z.string().optional(),
+  contactPerson: z.string().optional(),
+  address: z.string().optional(),
   contact: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -69,6 +78,10 @@ export default function ManufacturersPage() {
     resolver: zodResolver(manufacturerFormSchema),
     defaultValues: {
       name: "",
+      email: "",
+      phone: "",
+      contactPerson: "",
+      address: "",
       contact: "",
       notes: "",
     },
@@ -127,6 +140,10 @@ export default function ManufacturersPage() {
     setEditingId(manufacturer.id);
     form.reset({
       name: manufacturer.name,
+      email: manufacturer.email || "",
+      phone: manufacturer.phone || "",
+      contactPerson: manufacturer.contactPerson || "",
+      address: manufacturer.address || "",
       contact: manufacturer.contact || "",
       notes: manufacturer.notes || "",
     });
@@ -135,12 +152,14 @@ export default function ManufacturersPage() {
 
   const openNewDialog = () => {
     setEditingId(null);
-    form.reset({ name: "", contact: "", notes: "" });
+    form.reset({ name: "", email: "", phone: "", contactPerson: "", address: "", contact: "", notes: "" });
     setDialogOpen(true);
   };
 
   const filteredManufacturers = manufacturers?.filter(m => 
     m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    m.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    m.contactPerson?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     m.contact?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -158,7 +177,7 @@ export default function ManufacturersPage() {
               Yeni Üretici
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingId ? "Üreticiyi Düzenle" : "Yeni Üretici Ekle"}
@@ -183,15 +202,86 @@ export default function ManufacturersPage() {
                     </FormItem>
                   )}
                 />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>E-posta</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="email"
+                            placeholder="ornek@firma.com" 
+                            {...field} 
+                            data-testid="input-manufacturer-email"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Telefon</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="+90 5XX XXX XX XX" 
+                            {...field} 
+                            data-testid="input-manufacturer-phone"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="contactPerson"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Yetkili Kişi</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Yetkili kişinin adı soyadı" 
+                          {...field} 
+                          data-testid="input-manufacturer-contact-person"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Adres</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Firma adresi" 
+                          {...field} 
+                          data-testid="input-manufacturer-address"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="contact"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>İletişim Bilgisi</FormLabel>
+                      <FormLabel>Ek İletişim Bilgisi</FormLabel>
                       <FormControl>
                         <Input 
-                          placeholder="Telefon veya e-posta" 
+                          placeholder="Alternatif telefon veya e-posta" 
                           {...field} 
                           data-testid="input-manufacturer-contact"
                         />
@@ -266,18 +356,57 @@ export default function ManufacturersPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Üretici Adı</TableHead>
-                    <TableHead>İletişim</TableHead>
-                    <TableHead>Notlar</TableHead>
+                    <TableHead>Yetkili Kişi</TableHead>
+                    <TableHead>E-posta</TableHead>
+                    <TableHead>Telefon</TableHead>
                     <TableHead className="text-right">İşlemler</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredManufacturers.map((manufacturer) => (
                     <TableRow key={manufacturer.id} data-testid={`row-manufacturer-${manufacturer.id}`}>
-                      <TableCell className="font-medium">{manufacturer.name}</TableCell>
-                      <TableCell>{manufacturer.contact || "-"}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {manufacturer.notes || "-"}
+                      <TableCell className="font-medium">
+                        <div>
+                          {manufacturer.name}
+                          {manufacturer.address && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <MapPin className="h-3 w-3 inline ml-2 text-muted-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">{manufacturer.address}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {manufacturer.contactPerson ? (
+                          <div className="flex items-center gap-1">
+                            <User className="h-3 w-3 text-muted-foreground" />
+                            {manufacturer.contactPerson}
+                          </div>
+                        ) : "-"}
+                      </TableCell>
+                      <TableCell>
+                        {manufacturer.email ? (
+                          <div className="flex items-center gap-1">
+                            <Mail className="h-3 w-3 text-muted-foreground" />
+                            <a href={`mailto:${manufacturer.email}`} className="text-primary hover:underline">
+                              {manufacturer.email}
+                            </a>
+                          </div>
+                        ) : "-"}
+                      </TableCell>
+                      <TableCell>
+                        {manufacturer.phone ? (
+                          <div className="flex items-center gap-1">
+                            <Phone className="h-3 w-3 text-muted-foreground" />
+                            <a href={`tel:${manufacturer.phone}`} className="hover:underline">
+                              {manufacturer.phone}
+                            </a>
+                          </div>
+                        ) : "-"}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
