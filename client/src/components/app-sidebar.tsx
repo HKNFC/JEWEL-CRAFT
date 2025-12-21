@@ -79,12 +79,11 @@ const menuItems = [
 ];
 
 export function AppSidebar() {
-  const [location, setLocation] = useLocation();
+  const [location] = useLocation();
   const { user, logout, logoutPending } = useAuth();
 
   const handleLogout = async () => {
     await logout();
-    setLocation("/login");
   };
 
   return (
