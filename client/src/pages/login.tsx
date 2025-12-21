@@ -28,7 +28,7 @@ export default function LoginPage() {
     try {
       await login(loginForm);
       toast({ title: "Giriş başarılı", description: "Hoş geldiniz!" });
-      setLocation("/");
+      window.location.href = "/";
     } catch (error: any) {
       toast({
         title: "Giriş başarısız",
@@ -51,7 +51,7 @@ export default function LoginPage() {
     try {
       await register(registerForm);
       toast({ title: "Kayıt başarılı", description: "Hoş geldiniz!" });
-      setLocation("/");
+      window.location.href = "/";
     } catch (error: any) {
       toast({
         title: "Kayıt başarısız",
