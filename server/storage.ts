@@ -1,4 +1,5 @@
 import { 
+  users,
   manufacturers, 
   stoneSettingRates, 
   gemstonePriceLists, 
@@ -8,6 +9,8 @@ import {
   rapaportPrices,
   rapaportDiscountRates,
   batches,
+  type User,
+  type InsertUser,
   type Manufacturer, 
   type InsertManufacturer,
   type StoneSettingRate,
@@ -33,6 +36,11 @@ import { db } from "./db";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
 
 export interface IStorage {
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(data: InsertUser & { passwordHash: string }): Promise<User>;
+  updateUser(id: number, data: Partial<InsertUser & { passwordHash?: string }>): Promise<User | undefined>;
+
   getManufacturers(): Promise<Manufacturer[]>;
   getManufacturer(id: number): Promise<Manufacturer | undefined>;
   createManufacturer(data: InsertManufacturer): Promise<Manufacturer>;
@@ -83,6 +91,26 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(data: InsertUser & { passwordHash: string }): Promise<User> {
+    const [user] = await db.insert(users).values(data).returning();
+    return user;
+  }
+
+  async updateUser(id: number, data: Partial<InsertUser & { passwordHash?: string }>): Promise<User | undefined> {
+    const [user] = await db.update(users).set(data).where(eq(users.id, id)).returning();
+    return user || undefined;
+  }
+
   async getManufacturers(): Promise<Manufacturer[]> {
     return db.select().from(manufacturers);
   }

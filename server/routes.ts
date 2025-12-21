@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
@@ -9,14 +9,169 @@ import {
   insertExchangeRateSchema,
   insertBatchSchema,
   insertRapaportDiscountRateSchema,
+  insertUserSchema,
 } from "@shared/schema";
 import { fetchGoldPrices } from "./goldapi";
 import { Resend } from "resend";
+import bcrypt from "bcrypt";
+import { z } from "zod";
+
+const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Oturum açmanız gerekiyor" });
+  }
+  next();
+};
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const registerSchema = insertUserSchema.extend({
+        password: z.string().min(6, "Şifre en az 6 karakter olmalı"),
+      });
+      const parsed = registerSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.issues });
+      }
+      const { password, ...userData } = parsed.data;
+      
+      const existingUser = await storage.getUserByUsername(userData.username);
+      if (existingUser) {
+        return res.status(400).json({ error: "Bu kullanıcı adı zaten kullanılıyor" });
+      }
+      
+      const passwordHash = await bcrypt.hash(password, 10);
+      const user = await storage.createUser({ ...userData, passwordHash });
+      
+      req.session.userId = user.id;
+      
+      const { passwordHash: _, ...safeUser } = user;
+      res.status(201).json(safeUser);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Kayıt sırasında bir hata oluştu" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      if (!username || !password) {
+        return res.status(400).json({ error: "Kullanıcı adı ve şifre gerekli" });
+      }
+      
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(401).json({ error: "Geçersiz kullanıcı adı veya şifre" });
+      }
+      
+      const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: "Geçersiz kullanıcı adı veya şifre" });
+      }
+      
+      req.session.userId = user.id;
+      
+      const { passwordHash: _, ...safeUser } = user;
+      res.json(safeUser);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Giriş sırasında bir hata oluştu" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Çıkış yapılırken bir hata oluştu" });
+      }
+      res.json({ success: true });
+    });
+  });
+
+  app.get("/api/auth/me", async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Oturum bulunamadı" });
+    }
+    
+    const user = await storage.getUser(req.session.userId);
+    if (!user) {
+      req.session.destroy(() => {});
+      return res.status(401).json({ error: "Kullanıcı bulunamadı" });
+    }
+    
+    const { passwordHash: _, ...safeUser } = user;
+    res.json(safeUser);
+  });
+
+  app.patch("/api/auth/profile", requireAuth, async (req, res) => {
+    try {
+      const { companyName, fullName, email, emailFromAddress } = req.body;
+      const user = await storage.updateUser(req.session.userId!, {
+        companyName,
+        fullName,
+        email,
+        emailFromAddress,
+      });
+      if (!user) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      }
+      const { passwordHash: _, ...safeUser } = user;
+      res.json(safeUser);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Profil güncellenirken bir hata oluştu" });
+    }
+  });
+
+  app.patch("/api/auth/password", requireAuth, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: "Mevcut şifre ve yeni şifre gerekli" });
+      }
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: "Yeni şifre en az 6 karakter olmalı" });
+      }
+      
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      }
+      
+      const isValidPassword = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: "Mevcut şifre hatalı" });
+      }
+      
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+      await storage.updateUser(req.session.userId!, { passwordHash });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Şifre değiştirilirken bir hata oluştu" });
+    }
+  });
+
+  app.patch("/api/auth/email-api-key", requireAuth, async (req, res) => {
+    try {
+      const { emailApiKey } = req.body;
+      const user = await storage.updateUser(req.session.userId!, { emailApiKey });
+      if (!user) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      }
+      const { passwordHash: _, ...safeUser } = user;
+      res.json(safeUser);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "API anahtarı güncellenirken bir hata oluştu" });
+    }
+  });
 
   app.get("/api/manufacturers", async (req, res) => {
     try {

@@ -3,6 +3,18 @@ import { pgTable, text, varchar, integer, decimal, serial, timestamp, boolean } 
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  companyName: text("company_name").notNull(),
+  username: text("username").notNull(),
+  passwordHash: text("password_hash").notNull(),
+  fullName: text("full_name"),
+  email: text("email"),
+  emailApiKey: text("email_api_key"),
+  emailFromAddress: text("email_from_address"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const manufacturers = pgTable("manufacturers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -137,6 +149,7 @@ export const batchesRelations = relations(batches, ({ one, many }) => ({
   analysisRecords: many(analysisRecords),
 }));
 
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, passwordHash: true });
 export const insertManufacturerSchema = createInsertSchema(manufacturers).omit({ id: true });
 export const insertStoneSettingRateSchema = createInsertSchema(stoneSettingRates).omit({ id: true });
 export const insertGemstonePriceListSchema = createInsertSchema(gemstonePriceLists).omit({ id: true });
@@ -146,6 +159,9 @@ export const insertExchangeRateSchema = createInsertSchema(exchangeRates).omit({
 export const insertRapaportPriceSchema = createInsertSchema(rapaportPrices).omit({ id: true, uploadedAt: true });
 export const insertRapaportDiscountRateSchema = createInsertSchema(rapaportDiscountRates).omit({ id: true });
 export const insertBatchSchema = createInsertSchema(batches).omit({ id: true, createdAt: true });
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
 
 export type Manufacturer = typeof manufacturers.$inferSelect;
 export type InsertManufacturer = z.infer<typeof insertManufacturerSchema>;
