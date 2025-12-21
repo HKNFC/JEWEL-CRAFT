@@ -31,12 +31,19 @@ Preferred communication style: Simple, everyday language.
 - **Schema Location**: `shared/schema.ts` (shared between frontend and backend)
 
 ### Database Schema
-The application has five main tables:
-1. **manufacturers** - Jewelry manufacturers with contact info
-2. **stone_setting_rates** - Pricing tiers based on carat ranges
-3. **gemstone_price_lists** - Gemstone types with quality grades and per-carat pricing
-4. **analysis_records** - Main cost analysis records with gold labor, fire percentage, polish, and certificate costs
-5. **analysis_stones** - Individual stones within an analysis record (one-to-many relationship)
+The application has six main tables:
+1. **users** - User accounts with company info, credentials, and email API settings
+2. **manufacturers** - Jewelry manufacturers with contact info
+3. **stone_setting_rates** - Pricing tiers based on carat ranges
+4. **gemstone_price_lists** - Gemstone types with quality grades and per-carat pricing
+5. **analysis_records** - Main cost analysis records with gold labor, fire percentage, polish, and certificate costs
+6. **analysis_stones** - Individual stones within an analysis record (one-to-many relationship)
+
+### Authentication System
+- **Session-based authentication** using express-session with memorystore
+- **Password hashing** with bcrypt (10 rounds)
+- **Protected routes** - All pages except login require authentication
+- **User-specific email API keys** - Each user can configure their own Resend API key
 
 ### Project Structure
 ```
@@ -58,11 +65,13 @@ The application has five main tables:
 
 ### API Endpoints
 All routes prefixed with `/api/`:
+- `/auth/register`, `/auth/login`, `/auth/logout`, `/auth/me` - Authentication endpoints
+- `/auth/profile`, `/auth/password`, `/auth/email-api-key` - User settings endpoints
 - `/manufacturers` - CRUD for manufacturer management
 - `/stone-setting-rates` - CRUD for setting rate tiers
 - `/gemstone-prices` - CRUD for gemstone price lists
 - `/analysis-records` - CRUD for analysis records with nested stones
-- `/send-batch-report` - POST endpoint to send batch reports via email (uses Resend)
+- `/send-batch-report` - POST endpoint to send batch reports via email (uses user's Resend API key)
 
 ### Build System
 - Development: `tsx` for TypeScript execution with Vite dev server
