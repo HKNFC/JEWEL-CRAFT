@@ -41,7 +41,7 @@ export default function Dashboard() {
             </h2>
           </div>
           <p className="text-white/90 leading-relaxed text-sm md:text-base max-w-2xl pl-3" data-testid="text-motivation-message">
-            Güven kontrolle başlar. Analizlerinizdeki titizlik, üreticilerimizle olan bağımızı daha şeffaf ve karlı hale getiriyor. Analizdeki her saniye, gelecekte kazanılacak binlerce dolardır.
+            <span className="font-bold">Güven kontrolle başlar.</span> Analizlerinizdeki titizlik, üreticilerimizle olan bağımızı daha şeffaf ve karlı hale getirecek.
           </p>
         </div>
       </div>
