@@ -91,12 +91,11 @@ export default function BatchListPage() {
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-lg" data-testid={`text-batch-number-${batch.id}`}>
-                              Parti #{batch.batchNumber}
-                            </span>
-                            <Badge variant="secondary" data-testid={`badge-manufacturer-${batch.id}`}>
-                              <Factory className="h-3 w-3 mr-1" />
+                            <span className="font-semibold text-lg" data-testid={`text-manufacturer-${batch.id}`}>
                               {batch.manufacturer?.name || "Bilinmeyen"}
+                            </span>
+                            <Badge variant="secondary" data-testid={`badge-batch-number-${batch.id}`}>
+                              Parti #{batch.batchNumber}
                             </Badge>
                           </div>
                           <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1 flex-wrap">
