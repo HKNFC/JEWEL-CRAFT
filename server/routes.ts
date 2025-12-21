@@ -747,7 +747,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/send-batch-report", async (req, res) => {
+  app.post("/api/send-batch-report", requireAuth, async (req, res) => {
     try {
       const { batchId, email, subject, htmlContent } = req.body;
       
@@ -755,15 +755,21 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Email, subject, and htmlContent are required" });
       }
 
-      const apiKey = process.env.RESEND_API_KEY;
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) {
+        return res.status(401).json({ error: "Kullanıcı bulunamadı" });
+      }
+
+      const apiKey = user.emailApiKey || process.env.RESEND_API_KEY;
       if (!apiKey) {
-        return res.status(500).json({ error: "Email service not configured" });
+        return res.status(400).json({ error: "Email API anahtarı ayarlanmamış. Lütfen Ayarlar sayfasından API anahtarınızı girin." });
       }
 
       const resend = new Resend(apiKey);
+      const fromAddress = user.emailFromAddress || "Maliyet Analizi <onboarding@resend.dev>";
       
       const { data, error } = await resend.emails.send({
-        from: "Maliyet Analizi <onboarding@resend.dev>",
+        from: fromAddress,
         to: [email],
         subject: subject,
         html: htmlContent,
@@ -771,13 +777,13 @@ export async function registerRoutes(
 
       if (error) {
         console.error("Email send error:", error);
-        return res.status(500).json({ error: "Failed to send email", details: error.message });
+        return res.status(500).json({ error: "E-posta gönderilemedi", details: error.message });
       }
 
       res.json({ success: true, messageId: data?.id });
     } catch (error) {
       console.error("Email send error:", error);
-      res.status(500).json({ error: "Failed to send email" });
+      res.status(500).json({ error: "E-posta gönderilemedi" });
     }
   });
 

@@ -1,4 +1,5 @@
 import { useLocation, Link } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 import { 
   LayoutDashboard, 
   Factory, 
@@ -8,7 +9,10 @@ import {
   DollarSign,
   Diamond,
   Package,
-  Percent
+  Percent,
+  Settings,
+  LogOut,
+  Loader2
 } from "lucide-react";
 import {
   Sidebar,
@@ -20,7 +24,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 const menuItems = [
   {
@@ -71,7 +78,13 @@ const menuItems = [
 ];
 
 export function AppSidebar() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
+  const { user, logout, logoutPending } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    setLocation("/login");
+  };
 
   return (
     <Sidebar>
@@ -103,6 +116,42 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="border-t border-sidebar-border p-4">
+        {user && (
+          <div className="space-y-3">
+            <div className="text-sm">
+              <p className="font-medium truncate">{user.companyName}</p>
+              <p className="text-muted-foreground text-xs truncate">{user.username}</p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex-1 justify-start"
+                asChild
+              >
+                <Link href="/settings" data-testid="link-settings">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Ayarlar
+                </Link>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLogout}
+                disabled={logoutPending}
+                data-testid="button-logout"
+              >
+                {logoutPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <LogOut className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+      </SidebarFooter>
     </Sidebar>
   );
 }
