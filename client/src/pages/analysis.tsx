@@ -56,7 +56,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import type { AnalysisRecordWithRelations, Manufacturer, StoneSettingRate, GemstonePriceList, Batch, BatchWithRelations } from "@shared/schema";
+import type { AnalysisRecordWithRelations, Manufacturer, StoneSettingRate, GemstonePriceList, Batch, BatchWithRelations, RapaportDiscountRate } from "@shared/schema";
 
 const analysisFormSchema = z.object({
   manufacturerId: z.string().min(1, "Üretici seçiniz"),
@@ -170,6 +170,10 @@ export default function AnalysisPage() {
 
   const { data: allBatches } = useQuery<BatchWithRelations[]>({
     queryKey: ["/api/batches"],
+  });
+
+  const { data: rapaportDiscountRates } = useQuery<RapaportDiscountRate[]>({
+    queryKey: ["/api/rapaport-discount-rates"],
   });
 
   const createBatchMutation = useMutation({
@@ -538,6 +542,14 @@ export default function AnalysisPage() {
     return settingRate ? parseFloat(settingRate.pricePerStone) * quantity : 0;
   };
 
+  const getDiscountRateForCarat = (caratSize: number): number | undefined => {
+    if (!rapaportDiscountRates || rapaportDiscountRates.length === 0) return undefined;
+    const discountRate = rapaportDiscountRates.find(r =>
+      caratSize >= parseFloat(r.minCarat) && caratSize <= parseFloat(r.maxCarat)
+    );
+    return discountRate ? parseFloat(discountRate.discountPercent) : undefined;
+  };
+
   const createMutation = useMutation({
     mutationFn: (data: { record: AnalysisFormValues; stones: StoneEntry[] }) => 
       apiRequest("POST", "/api/analysis-records", { ...data.record, stones: data.stones }),
@@ -641,13 +653,26 @@ export default function AnalysisPage() {
                         stone.stoneType.toLowerCase().includes("diamond") ||
                         stone.stoneType.toLowerCase().includes("pırlanta");
       
-      if (isDiamond && stone.shape && stone.color && stone.clarity) {
-        const rapPrice = await lookupRapaportPrice(stone.shape, caratSize, stone.color, stone.clarity);
-        if (rapPrice) {
-          stone.rapaportPrice = rapPrice;
-          const discountPercent = stone.discountPercent || 0;
-          const discountedPrice = rapPrice * (1 - discountPercent / 100);
-          stone.totalStoneCost = discountedPrice * caratSize * quantity;
+      if (isDiamond) {
+        if (field === "caratSize" || field === "stoneType") {
+          const autoDiscount = getDiscountRateForCarat(caratSize);
+          if (autoDiscount !== undefined && stone.discountPercent === undefined) {
+            stone.discountPercent = autoDiscount;
+          }
+        }
+        
+        if (stone.shape && stone.color && stone.clarity) {
+          const rapPrice = await lookupRapaportPrice(stone.shape, caratSize, stone.color, stone.clarity);
+          if (rapPrice) {
+            stone.rapaportPrice = rapPrice;
+            const discountPercent = stone.discountPercent || 0;
+            const discountedPrice = rapPrice * (1 - discountPercent / 100);
+            stone.totalStoneCost = discountedPrice * caratSize * quantity;
+          } else {
+            const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
+            stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
+            stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
+          }
         } else {
           const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
           stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;

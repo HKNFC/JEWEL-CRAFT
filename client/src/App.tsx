@@ -16,6 +16,7 @@ import ExchangeRatesPage from "@/pages/exchange-rates";
 import RapaportPage from "@/pages/rapaport";
 import BatchListPage from "@/pages/batch-list";
 import BatchDetailPage from "@/pages/batch-detail";
+import RapaportDiscountRatesPage from "@/pages/rapaport-discount-rates";
 
 function Router() {
   return (
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/analysis" component={AnalysisPage} />
       <Route path="/exchange-rates" component={ExchangeRatesPage} />
       <Route path="/rapaport" component={RapaportPage} />
+      <Route path="/rapaport-discount-rates" component={RapaportDiscountRatesPage} />
       <Route path="/batches" component={BatchListPage} />
       <Route path="/batch/:id" component={BatchDetailPage} />
       <Route component={NotFound} />

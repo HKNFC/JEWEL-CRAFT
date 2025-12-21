@@ -7,7 +7,8 @@ import {
   FileText,
   DollarSign,
   Diamond,
-  Package
+  Package,
+  Percent
 } from "lucide-react";
 import {
   Sidebar,
@@ -51,6 +52,11 @@ const menuItems = [
     title: "Rapaport",
     url: "/rapaport",
     icon: Diamond,
+  },
+  {
+    title: "Rapaport İndirim",
+    url: "/rapaport-discount-rates",
+    icon: Percent,
   },
   {
     title: "Analiz Kayıtları",
