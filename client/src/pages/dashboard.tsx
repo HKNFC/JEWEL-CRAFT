@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DollarSign, Coins } from "lucide-react";
+import { DollarSign, Coins, Sparkles, TrendingUp } from "lucide-react";
 import type { ExchangeRate, User } from "@shared/schema";
 
 export default function Dashboard() {
@@ -26,18 +26,25 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 space-y-6">
-      <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
-        <CardContent className="pt-6">
-          <div className="space-y-3">
-            <h2 className="text-xl font-semibold text-foreground" data-testid="text-welcome-title">
+      <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-amber-500/90 via-amber-600/85 to-yellow-600/90 dark:from-amber-600/80 dark:via-amber-700/75 dark:to-yellow-700/80 p-6 shadow-lg">
+        <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 opacity-20">
+          <Sparkles className="w-full h-full text-white" />
+        </div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 -ml-6 -mb-6 opacity-10">
+          <TrendingUp className="w-full h-full text-white" />
+        </div>
+        <div className="relative z-10 space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-8 bg-white/60 rounded-full" />
+            <h2 className="text-xl font-bold text-white drop-shadow-sm" data-testid="text-welcome-title">
               {getTitle()}
             </h2>
-            <p className="text-muted-foreground leading-relaxed" data-testid="text-motivation-message">
-              Güven kontrolle başlar. Analizlerinizdeki titizlik, üreticilerimizle olan bağımızı daha şeffaf ve karlı hale getiriyor. Analizdeki her saniye, gelecekte kazanılacak binlerce dolardır.
-            </p>
           </div>
-        </CardContent>
-      </Card>
+          <p className="text-white/90 leading-relaxed text-sm md:text-base max-w-2xl pl-3" data-testid="text-motivation-message">
+            Güven kontrolle başlar. Analizlerinizdeki titizlik, üreticilerimizle olan bağımızı daha şeffaf ve karlı hale getiriyor. Analizdeki her saniye, gelecekte kazanılacak binlerce dolardır.
+          </p>
+        </div>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
