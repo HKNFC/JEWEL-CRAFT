@@ -46,10 +46,10 @@ app.use(
       createTableIfMissing: true,
     }),
     cookie: {
-      secure: "auto",
+      secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: "none",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     },
     proxy: true,
   })
