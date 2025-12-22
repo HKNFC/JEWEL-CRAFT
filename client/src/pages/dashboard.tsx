@@ -35,12 +35,12 @@ export default function Dashboard() {
         </div>
         <div className="relative z-10 space-y-3">
           <div className="flex items-center gap-2">
-            <div className="w-1 h-8 bg-white/60 rounded-full" />
-            <h2 className="text-xl font-bold text-white drop-shadow-sm" data-testid="text-welcome-title">
+            <div className="w-1 h-8 bg-gray-900/60 rounded-full" />
+            <h2 className="text-xl font-bold text-gray-900 drop-shadow-sm" data-testid="text-welcome-title">
               {getTitle()}
             </h2>
           </div>
-          <p className="text-white/90 leading-relaxed text-sm md:text-base max-w-2xl pl-3" data-testid="text-motivation-message">
+          <p className="text-gray-900/90 leading-relaxed text-sm md:text-base max-w-2xl pl-3" data-testid="text-motivation-message">
             <span className="font-bold">Güven kontrolle başlar.</span> Analizlerinizdeki titizlik, üreticilerimizle olan bağımızı daha şeffaf ve karlı hale getirecek. Analizdeki her saniye, gelecekte kazanılacak binlerce dolardır.
           </p>
         </div>
