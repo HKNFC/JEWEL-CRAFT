@@ -174,19 +174,19 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/manufacturers", async (req, res) => {
+  app.get("/api/manufacturers", requireAuth, async (req, res) => {
     try {
-      const manufacturers = await storage.getManufacturers();
+      const manufacturers = await storage.getManufacturers(req.session.userId!);
       res.json(manufacturers);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch manufacturers" });
     }
   });
 
-  app.get("/api/manufacturers/:id", async (req, res) => {
+  app.get("/api/manufacturers/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const manufacturer = await storage.getManufacturer(id);
+      const manufacturer = await storage.getManufacturer(id, req.session.userId!);
       if (!manufacturer) {
         return res.status(404).json({ error: "Manufacturer not found" });
       }
@@ -196,23 +196,23 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/manufacturers", async (req, res) => {
+  app.post("/api/manufacturers", requireAuth, async (req, res) => {
     try {
       const parsed = insertManufacturerSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.issues });
       }
-      const manufacturer = await storage.createManufacturer(parsed.data);
+      const manufacturer = await storage.createManufacturer({ ...parsed.data, userId: req.session.userId! });
       res.status(201).json(manufacturer);
     } catch (error) {
       res.status(500).json({ error: "Failed to create manufacturer" });
     }
   });
 
-  app.patch("/api/manufacturers/:id", async (req, res) => {
+  app.patch("/api/manufacturers/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const manufacturer = await storage.updateManufacturer(id, req.body);
+      const manufacturer = await storage.updateManufacturer(id, req.session.userId!, req.body);
       if (!manufacturer) {
         return res.status(404).json({ error: "Manufacturer not found" });
       }
@@ -222,10 +222,10 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/manufacturers/:id", async (req, res) => {
+  app.delete("/api/manufacturers/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteManufacturer(id);
+      const deleted = await storage.deleteManufacturer(id, req.session.userId!);
       if (!deleted) {
         return res.status(404).json({ error: "Manufacturer not found" });
       }
@@ -235,19 +235,19 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/stone-setting-rates", async (req, res) => {
+  app.get("/api/stone-setting-rates", requireAuth, async (req, res) => {
     try {
-      const rates = await storage.getStoneSettingRates();
+      const rates = await storage.getStoneSettingRates(req.session.userId!);
       res.json(rates);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch stone setting rates" });
     }
   });
 
-  app.get("/api/stone-setting-rates/:id", async (req, res) => {
+  app.get("/api/stone-setting-rates/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const rate = await storage.getStoneSettingRate(id);
+      const rate = await storage.getStoneSettingRate(id, req.session.userId!);
       if (!rate) {
         return res.status(404).json({ error: "Rate not found" });
       }
@@ -257,23 +257,23 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/stone-setting-rates", async (req, res) => {
+  app.post("/api/stone-setting-rates", requireAuth, async (req, res) => {
     try {
       const parsed = insertStoneSettingRateSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.issues });
       }
-      const rate = await storage.createStoneSettingRate(parsed.data);
+      const rate = await storage.createStoneSettingRate({ ...parsed.data, userId: req.session.userId! });
       res.status(201).json(rate);
     } catch (error) {
       res.status(500).json({ error: "Failed to create rate" });
     }
   });
 
-  app.patch("/api/stone-setting-rates/:id", async (req, res) => {
+  app.patch("/api/stone-setting-rates/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const rate = await storage.updateStoneSettingRate(id, req.body);
+      const rate = await storage.updateStoneSettingRate(id, req.session.userId!, req.body);
       if (!rate) {
         return res.status(404).json({ error: "Rate not found" });
       }
@@ -283,10 +283,10 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/stone-setting-rates/:id", async (req, res) => {
+  app.delete("/api/stone-setting-rates/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteStoneSettingRate(id);
+      const deleted = await storage.deleteStoneSettingRate(id, req.session.userId!);
       if (!deleted) {
         return res.status(404).json({ error: "Rate not found" });
       }
@@ -296,19 +296,19 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/gemstone-prices", async (req, res) => {
+  app.get("/api/gemstone-prices", requireAuth, async (req, res) => {
     try {
-      const prices = await storage.getGemstonePriceLists();
+      const prices = await storage.getGemstonePriceLists(req.session.userId!);
       res.json(prices);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch gemstone prices" });
     }
   });
 
-  app.get("/api/gemstone-prices/:id", async (req, res) => {
+  app.get("/api/gemstone-prices/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const price = await storage.getGemstonePriceList(id);
+      const price = await storage.getGemstonePriceList(id, req.session.userId!);
       if (!price) {
         return res.status(404).json({ error: "Price not found" });
       }
@@ -318,23 +318,23 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/gemstone-prices", async (req, res) => {
+  app.post("/api/gemstone-prices", requireAuth, async (req, res) => {
     try {
       const parsed = insertGemstonePriceListSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.issues });
       }
-      const price = await storage.createGemstonePriceList(parsed.data);
+      const price = await storage.createGemstonePriceList({ ...parsed.data, userId: req.session.userId! });
       res.status(201).json(price);
     } catch (error) {
       res.status(500).json({ error: "Failed to create price" });
     }
   });
 
-  app.patch("/api/gemstone-prices/:id", async (req, res) => {
+  app.patch("/api/gemstone-prices/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const price = await storage.updateGemstonePriceList(id, req.body);
+      const price = await storage.updateGemstonePriceList(id, req.session.userId!, req.body);
       if (!price) {
         return res.status(404).json({ error: "Price not found" });
       }
@@ -344,10 +344,10 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/gemstone-prices/:id", async (req, res) => {
+  app.delete("/api/gemstone-prices/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteGemstonePriceList(id);
+      const deleted = await storage.deleteGemstonePriceList(id, req.session.userId!);
       if (!deleted) {
         return res.status(404).json({ error: "Price not found" });
       }
@@ -357,19 +357,19 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/analysis-records", async (req, res) => {
+  app.get("/api/analysis-records", requireAuth, async (req, res) => {
     try {
-      const records = await storage.getAnalysisRecords();
+      const records = await storage.getAnalysisRecords(req.session.userId!);
       res.json(records);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch analysis records" });
     }
   });
 
-  app.get("/api/analysis-records/:id", async (req, res) => {
+  app.get("/api/analysis-records/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const record = await storage.getAnalysisRecord(id);
+      const record = await storage.getAnalysisRecord(id, req.session.userId!);
       if (!record) {
         return res.status(404).json({ error: "Record not found" });
       }
@@ -379,7 +379,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/analysis-records", async (req, res) => {
+  app.post("/api/analysis-records", requireAuth, async (req, res) => {
     try {
       const { stones, ...recordData } = req.body;
       const toNullIfEmpty = (val: any) => (val === "" || val === undefined) ? null : val;
@@ -417,7 +417,7 @@ export async function registerRoutes(
         rapaportPrice: stone.rapaportPrice?.toString() || null,
         discountPercent: stone.discountPercent?.toString() || null,
       }));
-      const record = await storage.createAnalysisRecord(parsed.data, formattedStones);
+      const record = await storage.createAnalysisRecord({ ...parsed.data, userId: req.session.userId! }, formattedStones);
       res.status(201).json(record);
     } catch (error) {
       console.error(error);
@@ -425,7 +425,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/analysis-records/:id", async (req, res) => {
+  app.patch("/api/analysis-records/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { stones, ...recordData } = req.body;
@@ -443,7 +443,7 @@ export async function registerRoutes(
         rapaportPrice: stone.rapaportPrice?.toString() || null,
         discountPercent: stone.discountPercent?.toString() || null,
       })) : undefined;
-      const record = await storage.updateAnalysisRecord(id, {
+      const record = await storage.updateAnalysisRecord(id, req.session.userId!, {
         ...recordData,
         manufacturerId: recordData.manufacturerId ? parseInt(recordData.manufacturerId) : null,
         goldPurity: recordData.goldPurity || "24",
@@ -471,10 +471,10 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/analysis-records/:id", async (req, res) => {
+  app.delete("/api/analysis-records/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteAnalysisRecord(id);
+      const deleted = await storage.deleteAnalysisRecord(id, req.session.userId!);
       if (!deleted) {
         return res.status(404).json({ error: "Record not found" });
       }
@@ -484,29 +484,29 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/exchange-rates/latest", async (req, res) => {
+  app.get("/api/exchange-rates/latest", requireAuth, async (req, res) => {
     try {
-      const rate = await storage.getLatestExchangeRate();
+      const rate = await storage.getLatestExchangeRate(req.session.userId!);
       res.json(rate || null);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch exchange rate" });
     }
   });
 
-  app.post("/api/exchange-rates", async (req, res) => {
+  app.post("/api/exchange-rates", requireAuth, async (req, res) => {
     try {
       const parsed = insertExchangeRateSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.issues });
       }
-      const rate = await storage.createExchangeRate(parsed.data);
+      const rate = await storage.createExchangeRate({ ...parsed.data, userId: req.session.userId! });
       res.status(201).json(rate);
     } catch (error) {
       res.status(500).json({ error: "Failed to save exchange rate" });
     }
   });
 
-  app.post("/api/exchange-rates/fetch", async (req, res) => {
+  app.post("/api/exchange-rates/fetch", requireAuth, async (req, res) => {
     try {
       const apiKey = process.env.GOLDAPI_KEY;
       if (!apiKey) {
@@ -518,6 +518,7 @@ export async function registerRoutes(
         gold24kPerGram: data.gold24kPerGram.toString(),
         gold24kCurrency: data.gold24kCurrency,
         isManual: false,
+        userId: req.session.userId!,
       });
       res.status(201).json(rate);
     } catch (error) {
@@ -526,16 +527,16 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/rapaport-prices", async (req, res) => {
+  app.get("/api/rapaport-prices", requireAuth, async (req, res) => {
     try {
-      const prices = await storage.getRapaportPrices();
+      const prices = await storage.getRapaportPrices(req.session.userId!);
       res.json(prices);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch Rapaport prices" });
     }
   });
 
-  app.post("/api/rapaport-prices", async (req, res) => {
+  app.post("/api/rapaport-prices", requireAuth, async (req, res) => {
     try {
       const { shape, lowCarat, highCarat, color, clarity, price } = req.body;
       const priceData = {
@@ -545,6 +546,7 @@ export async function registerRoutes(
         color,
         clarity,
         pricePerCarat: price?.toString(),
+        userId: req.session.userId!,
       };
       const saved = await storage.createRapaportPrice(priceData);
       res.status(201).json(saved);
@@ -554,13 +556,14 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/rapaport-prices/upload", async (req, res) => {
+  app.post("/api/rapaport-prices/upload", requireAuth, async (req, res) => {
     try {
       const { prices, clearExisting } = req.body;
       if (clearExisting) {
-        await storage.clearRapaportPrices();
+        await storage.clearRapaportPrices(req.session.userId!);
       }
-      const saved = await storage.createRapaportPrices(prices);
+      const pricesWithUserId = prices.map((p: any) => ({ ...p, userId: req.session.userId! }));
+      const saved = await storage.createRapaportPrices(pricesWithUserId);
       res.status(201).json(saved);
     } catch (error) {
       console.error(error);
@@ -568,22 +571,23 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/rapaport-prices", async (req, res) => {
+  app.delete("/api/rapaport-prices", requireAuth, async (req, res) => {
     try {
-      await storage.clearRapaportPrices();
+      await storage.clearRapaportPrices(req.session.userId!);
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to clear Rapaport prices" });
     }
   });
 
-  app.get("/api/rapaport-prices/lookup", async (req, res) => {
+  app.get("/api/rapaport-prices/lookup", requireAuth, async (req, res) => {
     try {
       const { shape, carat, color, clarity } = req.query;
       if (!shape || !carat || !color || !clarity) {
         return res.status(400).json({ error: "Missing required parameters" });
       }
       const price = await storage.findRapaportPrice(
+        req.session.userId!,
         shape as string,
         parseFloat(carat as string),
         color as string,
@@ -595,39 +599,39 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/batches", async (req, res) => {
+  app.get("/api/batches", requireAuth, async (req, res) => {
     try {
-      const batches = await storage.getBatches();
+      const batches = await storage.getBatches(req.session.userId!);
       res.json(batches);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch batches" });
     }
   });
 
-  app.get("/api/batches/manufacturer/:manufacturerId", async (req, res) => {
+  app.get("/api/batches/manufacturer/:manufacturerId", requireAuth, async (req, res) => {
     try {
       const manufacturerId = parseInt(req.params.manufacturerId);
-      const batches = await storage.getBatchesByManufacturer(manufacturerId);
+      const batches = await storage.getBatchesByManufacturer(req.session.userId!, manufacturerId);
       res.json(batches);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch batches for manufacturer" });
     }
   });
 
-  app.get("/api/batches/next-number/:manufacturerId", async (req, res) => {
+  app.get("/api/batches/next-number/:manufacturerId", requireAuth, async (req, res) => {
     try {
       const manufacturerId = parseInt(req.params.manufacturerId);
-      const nextNumber = await storage.getNextBatchNumber(manufacturerId);
+      const nextNumber = await storage.getNextBatchNumber(req.session.userId!, manufacturerId);
       res.json({ nextNumber });
     } catch (error) {
       res.status(500).json({ error: "Failed to get next batch number" });
     }
   });
 
-  app.get("/api/batches/:id", async (req, res) => {
+  app.get("/api/batches/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const batch = await storage.getBatch(id);
+      const batch = await storage.getBatch(id, req.session.userId!);
       if (!batch) {
         return res.status(404).json({ error: "Batch not found" });
       }
@@ -637,10 +641,10 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/batches/:id/details", async (req, res) => {
+  app.get("/api/batches/:id/details", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const details = await storage.getBatchWithFullDetails(id);
+      const details = await storage.getBatchWithFullDetails(id, req.session.userId!);
       if (!details) {
         return res.status(404).json({ error: "Batch not found" });
       }
@@ -650,13 +654,13 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/batches", async (req, res) => {
+  app.post("/api/batches", requireAuth, async (req, res) => {
     try {
       const { manufacturerId } = req.body;
       if (!manufacturerId) {
         return res.status(400).json({ error: "manufacturerId is required" });
       }
-      const batch = await storage.createBatch(parseInt(manufacturerId));
+      const batch = await storage.createBatch(req.session.userId!, parseInt(manufacturerId));
       res.status(201).json(batch);
     } catch (error) {
       console.error(error);
@@ -664,10 +668,10 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/batches/:id", async (req, res) => {
+  app.delete("/api/batches/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteBatch(id);
+      const deleted = await storage.deleteBatch(id, req.session.userId!);
       if (!deleted) {
         return res.status(404).json({ error: "Batch not found" });
       }
@@ -677,19 +681,19 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/rapaport-discount-rates", async (req, res) => {
+  app.get("/api/rapaport-discount-rates", requireAuth, async (req, res) => {
     try {
-      const rates = await storage.getRapaportDiscountRates();
+      const rates = await storage.getRapaportDiscountRates(req.session.userId!);
       res.json(rates);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch rapaport discount rates" });
     }
   });
 
-  app.get("/api/rapaport-discount-rates/:id", async (req, res) => {
+  app.get("/api/rapaport-discount-rates/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const rate = await storage.getRapaportDiscountRate(id);
+      const rate = await storage.getRapaportDiscountRate(id, req.session.userId!);
       if (!rate) {
         return res.status(404).json({ error: "Rate not found" });
       }
@@ -699,23 +703,23 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/rapaport-discount-rates", async (req, res) => {
+  app.post("/api/rapaport-discount-rates", requireAuth, async (req, res) => {
     try {
       const parsed = insertRapaportDiscountRateSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.issues });
       }
-      const rate = await storage.createRapaportDiscountRate(parsed.data);
+      const rate = await storage.createRapaportDiscountRate({ ...parsed.data, userId: req.session.userId! });
       res.status(201).json(rate);
     } catch (error) {
       res.status(500).json({ error: "Failed to create rate" });
     }
   });
 
-  app.patch("/api/rapaport-discount-rates/:id", async (req, res) => {
+  app.patch("/api/rapaport-discount-rates/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const rate = await storage.updateRapaportDiscountRate(id, req.body);
+      const rate = await storage.updateRapaportDiscountRate(id, req.session.userId!, req.body);
       if (!rate) {
         return res.status(404).json({ error: "Rate not found" });
       }
@@ -725,10 +729,10 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/rapaport-discount-rates/:id", async (req, res) => {
+  app.delete("/api/rapaport-discount-rates/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteRapaportDiscountRate(id);
+      const deleted = await storage.deleteRapaportDiscountRate(id, req.session.userId!);
       if (!deleted) {
         return res.status(404).json({ error: "Rate not found" });
       }
@@ -738,10 +742,10 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/rapaport-discount-rates/find/:carat", async (req, res) => {
+  app.get("/api/rapaport-discount-rates/find/:carat", requireAuth, async (req, res) => {
     try {
       const carat = parseFloat(req.params.carat);
-      const rate = await storage.findRapaportDiscountRate(carat);
+      const rate = await storage.findRapaportDiscountRate(req.session.userId!, carat);
       res.json(rate || null);
     } catch (error) {
       res.status(500).json({ error: "Failed to find discount rate" });
