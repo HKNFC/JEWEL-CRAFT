@@ -77,7 +77,6 @@ export async function registerRoutes(
       req.session.userId = user.id;
       
       const { passwordHash: _, ...safeUser } = user;
-      console.log("[LOGIN] User data:", JSON.stringify(safeUser, null, 2));
       res.json(safeUser);
     } catch (error) {
       console.error(error);

@@ -127,7 +127,6 @@ export function AppSidebar() {
             <div className="text-sm">
               <p className="font-medium truncate">{user.companyName}</p>
               <p className="text-muted-foreground text-xs truncate">{user.username}</p>
-              <p className="text-muted-foreground text-xs">Admin: {String(user.isAdmin)}</p>
             </div>
             <div className="flex gap-2 flex-wrap">
               <Button
