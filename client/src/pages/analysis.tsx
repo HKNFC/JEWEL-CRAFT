@@ -522,8 +522,8 @@ export default function AnalysisPage() {
 
     let laborCost = 0;
     if (goldLaborType === "gold") {
-      // İşçilik gram olarak girilmiş ise: (toplam gram × işçilik tutarı) / altın fiyatı USD
-      laborCost = goldPriceUsd > 0 ? safeNumber((totalGrams * goldLaborCost) / goldPriceUsd) : 0;
+      // İşçilik gram olarak girilmiş ise: (toplam gram × işçilik tutarı) × altın fiyatı USD
+      laborCost = safeNumber((totalGrams * goldLaborCost) * goldPriceUsd);
     } else {
       // İşçilik USD olarak girilmiş ise: toplam gram × işçilik tutarı
       laborCost = safeNumber(totalGrams * goldLaborCost);
