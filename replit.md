@@ -32,12 +32,20 @@ Preferred communication style: Simple, everyday language.
 
 ### Database Schema
 The application has six main tables:
-1. **users** - User accounts with company info, credentials, and email API settings
-2. **manufacturers** - Jewelry manufacturers with contact info
-3. **stone_setting_rates** - Pricing tiers based on carat ranges
-4. **gemstone_price_lists** - Gemstone types with quality grades and per-carat pricing
-5. **analysis_records** - Main cost analysis records with gold labor, fire percentage, polish, and certificate costs
+1. **users** - User accounts with company info, credentials, email API settings, and admin flag
+2. **manufacturers** - Jewelry manufacturers with contact info (shared across all users)
+3. **stone_setting_rates** - Pricing tiers based on carat ranges (shared across all users)
+4. **gemstone_price_lists** - Gemstone types with quality grades and per-carat pricing (shared across all users)
+5. **analysis_records** - Main cost analysis records with gold labor, fire percentage, polish, and certificate costs (user-specific via userId)
 6. **analysis_stones** - Individual stones within an analysis record (one-to-many relationship)
+7. **batches** - Batch groupings for analysis records (user-specific via userId)
+8. **exchange_rates** - USD/TRY and gold prices (shared across all users)
+9. **rapaport_prices** - Diamond price data from Rapaport (shared across all users)
+10. **rapaport_discount_rates** - Discount percentages by carat range (shared across all users)
+
+### Data Isolation Strategy
+- **Shared data**: Manufacturers, stone setting rates, gemstone prices, exchange rates, Rapaport prices, and discount rates are shared across all users. Any user can view and modify these.
+- **User-specific data**: Analysis records and batches are isolated per user. Each user can only see and modify their own analysis records and batch reports.
 
 ### Authentication System
 - **Session-based authentication** using express-session with memorystore

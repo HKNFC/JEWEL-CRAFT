@@ -176,7 +176,7 @@ export async function registerRoutes(
 
   app.get("/api/manufacturers", requireAuth, async (req, res) => {
     try {
-      const manufacturers = await storage.getManufacturers(req.session.userId!);
+      const manufacturers = await storage.getManufacturers();
       res.json(manufacturers);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch manufacturers" });
@@ -186,7 +186,7 @@ export async function registerRoutes(
   app.get("/api/manufacturers/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const manufacturer = await storage.getManufacturer(id, req.session.userId!);
+      const manufacturer = await storage.getManufacturer(id);
       if (!manufacturer) {
         return res.status(404).json({ error: "Manufacturer not found" });
       }
@@ -202,7 +202,7 @@ export async function registerRoutes(
       if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.issues });
       }
-      const manufacturer = await storage.createManufacturer({ ...parsed.data, userId: req.session.userId! });
+      const manufacturer = await storage.createManufacturer(parsed.data);
       res.status(201).json(manufacturer);
     } catch (error) {
       res.status(500).json({ error: "Failed to create manufacturer" });
@@ -212,7 +212,7 @@ export async function registerRoutes(
   app.patch("/api/manufacturers/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const manufacturer = await storage.updateManufacturer(id, req.session.userId!, req.body);
+      const manufacturer = await storage.updateManufacturer(id, req.body);
       if (!manufacturer) {
         return res.status(404).json({ error: "Manufacturer not found" });
       }
@@ -225,7 +225,7 @@ export async function registerRoutes(
   app.delete("/api/manufacturers/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteManufacturer(id, req.session.userId!);
+      const deleted = await storage.deleteManufacturer(id);
       if (!deleted) {
         return res.status(404).json({ error: "Manufacturer not found" });
       }
@@ -237,7 +237,7 @@ export async function registerRoutes(
 
   app.get("/api/stone-setting-rates", requireAuth, async (req, res) => {
     try {
-      const rates = await storage.getStoneSettingRates(req.session.userId!);
+      const rates = await storage.getStoneSettingRates();
       res.json(rates);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch stone setting rates" });
@@ -247,7 +247,7 @@ export async function registerRoutes(
   app.get("/api/stone-setting-rates/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const rate = await storage.getStoneSettingRate(id, req.session.userId!);
+      const rate = await storage.getStoneSettingRate(id);
       if (!rate) {
         return res.status(404).json({ error: "Rate not found" });
       }
@@ -263,7 +263,7 @@ export async function registerRoutes(
       if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.issues });
       }
-      const rate = await storage.createStoneSettingRate({ ...parsed.data, userId: req.session.userId! });
+      const rate = await storage.createStoneSettingRate(parsed.data);
       res.status(201).json(rate);
     } catch (error) {
       res.status(500).json({ error: "Failed to create rate" });
@@ -273,7 +273,7 @@ export async function registerRoutes(
   app.patch("/api/stone-setting-rates/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const rate = await storage.updateStoneSettingRate(id, req.session.userId!, req.body);
+      const rate = await storage.updateStoneSettingRate(id, req.body);
       if (!rate) {
         return res.status(404).json({ error: "Rate not found" });
       }
@@ -286,7 +286,7 @@ export async function registerRoutes(
   app.delete("/api/stone-setting-rates/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteStoneSettingRate(id, req.session.userId!);
+      const deleted = await storage.deleteStoneSettingRate(id);
       if (!deleted) {
         return res.status(404).json({ error: "Rate not found" });
       }
@@ -298,7 +298,7 @@ export async function registerRoutes(
 
   app.get("/api/gemstone-prices", requireAuth, async (req, res) => {
     try {
-      const prices = await storage.getGemstonePriceLists(req.session.userId!);
+      const prices = await storage.getGemstonePriceLists();
       res.json(prices);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch gemstone prices" });
@@ -308,7 +308,7 @@ export async function registerRoutes(
   app.get("/api/gemstone-prices/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const price = await storage.getGemstonePriceList(id, req.session.userId!);
+      const price = await storage.getGemstonePriceList(id);
       if (!price) {
         return res.status(404).json({ error: "Price not found" });
       }
@@ -324,7 +324,7 @@ export async function registerRoutes(
       if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.issues });
       }
-      const price = await storage.createGemstonePriceList({ ...parsed.data, userId: req.session.userId! });
+      const price = await storage.createGemstonePriceList(parsed.data);
       res.status(201).json(price);
     } catch (error) {
       res.status(500).json({ error: "Failed to create price" });
@@ -334,7 +334,7 @@ export async function registerRoutes(
   app.patch("/api/gemstone-prices/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const price = await storage.updateGemstonePriceList(id, req.session.userId!, req.body);
+      const price = await storage.updateGemstonePriceList(id, req.body);
       if (!price) {
         return res.status(404).json({ error: "Price not found" });
       }
@@ -347,7 +347,7 @@ export async function registerRoutes(
   app.delete("/api/gemstone-prices/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteGemstonePriceList(id, req.session.userId!);
+      const deleted = await storage.deleteGemstonePriceList(id);
       if (!deleted) {
         return res.status(404).json({ error: "Price not found" });
       }
@@ -486,7 +486,7 @@ export async function registerRoutes(
 
   app.get("/api/exchange-rates/latest", requireAuth, async (req, res) => {
     try {
-      const rate = await storage.getLatestExchangeRate(req.session.userId!);
+      const rate = await storage.getLatestExchangeRate();
       res.json(rate || null);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch exchange rate" });
@@ -499,7 +499,7 @@ export async function registerRoutes(
       if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.issues });
       }
-      const rate = await storage.createExchangeRate({ ...parsed.data, userId: req.session.userId! });
+      const rate = await storage.createExchangeRate(parsed.data);
       res.status(201).json(rate);
     } catch (error) {
       res.status(500).json({ error: "Failed to save exchange rate" });
@@ -518,7 +518,6 @@ export async function registerRoutes(
         gold24kPerGram: data.gold24kPerGram.toString(),
         gold24kCurrency: data.gold24kCurrency,
         isManual: false,
-        userId: req.session.userId!,
       });
       res.status(201).json(rate);
     } catch (error) {
@@ -529,7 +528,7 @@ export async function registerRoutes(
 
   app.get("/api/rapaport-prices", requireAuth, async (req, res) => {
     try {
-      const prices = await storage.getRapaportPrices(req.session.userId!);
+      const prices = await storage.getRapaportPrices();
       res.json(prices);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch Rapaport prices" });
@@ -546,7 +545,6 @@ export async function registerRoutes(
         color,
         clarity,
         pricePerCarat: price?.toString(),
-        userId: req.session.userId!,
       };
       const saved = await storage.createRapaportPrice(priceData);
       res.status(201).json(saved);
@@ -560,10 +558,9 @@ export async function registerRoutes(
     try {
       const { prices, clearExisting } = req.body;
       if (clearExisting) {
-        await storage.clearRapaportPrices(req.session.userId!);
+        await storage.clearRapaportPrices();
       }
-      const pricesWithUserId = prices.map((p: any) => ({ ...p, userId: req.session.userId! }));
-      const saved = await storage.createRapaportPrices(pricesWithUserId);
+      const saved = await storage.createRapaportPrices(prices);
       res.status(201).json(saved);
     } catch (error) {
       console.error(error);
@@ -573,7 +570,7 @@ export async function registerRoutes(
 
   app.delete("/api/rapaport-prices", requireAuth, async (req, res) => {
     try {
-      await storage.clearRapaportPrices(req.session.userId!);
+      await storage.clearRapaportPrices();
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to clear Rapaport prices" });
@@ -587,7 +584,6 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Missing required parameters" });
       }
       const price = await storage.findRapaportPrice(
-        req.session.userId!,
         shape as string,
         parseFloat(carat as string),
         color as string,
@@ -683,7 +679,7 @@ export async function registerRoutes(
 
   app.get("/api/rapaport-discount-rates", requireAuth, async (req, res) => {
     try {
-      const rates = await storage.getRapaportDiscountRates(req.session.userId!);
+      const rates = await storage.getRapaportDiscountRates();
       res.json(rates);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch rapaport discount rates" });
@@ -693,7 +689,7 @@ export async function registerRoutes(
   app.get("/api/rapaport-discount-rates/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const rate = await storage.getRapaportDiscountRate(id, req.session.userId!);
+      const rate = await storage.getRapaportDiscountRate(id);
       if (!rate) {
         return res.status(404).json({ error: "Rate not found" });
       }
@@ -709,7 +705,7 @@ export async function registerRoutes(
       if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.issues });
       }
-      const rate = await storage.createRapaportDiscountRate({ ...parsed.data, userId: req.session.userId! });
+      const rate = await storage.createRapaportDiscountRate(parsed.data);
       res.status(201).json(rate);
     } catch (error) {
       res.status(500).json({ error: "Failed to create rate" });
@@ -719,7 +715,7 @@ export async function registerRoutes(
   app.patch("/api/rapaport-discount-rates/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const rate = await storage.updateRapaportDiscountRate(id, req.session.userId!, req.body);
+      const rate = await storage.updateRapaportDiscountRate(id, req.body);
       if (!rate) {
         return res.status(404).json({ error: "Rate not found" });
       }
@@ -732,7 +728,7 @@ export async function registerRoutes(
   app.delete("/api/rapaport-discount-rates/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteRapaportDiscountRate(id, req.session.userId!);
+      const deleted = await storage.deleteRapaportDiscountRate(id);
       if (!deleted) {
         return res.status(404).json({ error: "Rate not found" });
       }
@@ -745,7 +741,7 @@ export async function registerRoutes(
   app.get("/api/rapaport-discount-rates/find/:carat", requireAuth, async (req, res) => {
     try {
       const carat = parseFloat(req.params.carat);
-      const rate = await storage.findRapaportDiscountRate(req.session.userId!, carat);
+      const rate = await storage.findRapaportDiscountRate(carat);
       res.json(rate || null);
     } catch (error) {
       res.status(500).json({ error: "Failed to find discount rate" });

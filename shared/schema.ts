@@ -26,7 +26,6 @@ export const adminSettings = pgTable("admin_settings", {
 
 export const manufacturers = pgTable("manufacturers", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
   name: text("name").notNull(),
   contact: text("contact"),
   email: text("email"),
@@ -38,7 +37,6 @@ export const manufacturers = pgTable("manufacturers", {
 
 export const stoneSettingRates = pgTable("stone_setting_rates", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
   stoneCategory: text("stone_category").notNull().default("diamond"),
   minCarat: decimal("min_carat", { precision: 6, scale: 4 }).notNull(),
   maxCarat: decimal("max_carat", { precision: 6, scale: 4 }).notNull(),
@@ -47,7 +45,6 @@ export const stoneSettingRates = pgTable("stone_setting_rates", {
 
 export const gemstonePriceLists = pgTable("gemstone_price_lists", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
   stoneType: text("stone_type").notNull(),
   quality: text("quality"),
   minCarat: decimal("min_carat", { precision: 6, scale: 4 }),
@@ -99,7 +96,6 @@ export const analysisStones = pgTable("analysis_stones", {
 
 export const exchangeRates = pgTable("exchange_rates", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
   usdTry: decimal("usd_try", { precision: 10, scale: 4 }).notNull(),
   gold24kPerGram: decimal("gold_24k_per_gram", { precision: 12, scale: 2 }).notNull(),
   gold24kCurrency: text("gold_24k_currency").default("TRY"),
@@ -109,7 +105,6 @@ export const exchangeRates = pgTable("exchange_rates", {
 
 export const rapaportPrices = pgTable("rapaport_prices", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
   shape: text("shape").notNull(),
   lowCarat: decimal("low_carat", { precision: 6, scale: 2 }).notNull(),
   highCarat: decimal("high_carat", { precision: 6, scale: 2 }).notNull(),
@@ -121,7 +116,6 @@ export const rapaportPrices = pgTable("rapaport_prices", {
 
 export const rapaportDiscountRates = pgTable("rapaport_discount_rates", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
   minCarat: decimal("min_carat", { precision: 6, scale: 4 }).notNull(),
   maxCarat: decimal("max_carat", { precision: 6, scale: 4 }).notNull(),
   discountPercent: decimal("discount_percent", { precision: 5, scale: 2 }).notNull(),

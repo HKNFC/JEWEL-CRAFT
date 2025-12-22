@@ -44,23 +44,23 @@ export interface IStorage {
   createUser(data: InsertUser & { passwordHash: string }): Promise<User>;
   updateUser(id: number, data: Partial<InsertUser & { passwordHash?: string }>): Promise<User | undefined>;
 
-  getManufacturers(userId: number): Promise<Manufacturer[]>;
-  getManufacturer(id: number, userId: number): Promise<Manufacturer | undefined>;
-  createManufacturer(data: InsertManufacturer & { userId: number }): Promise<Manufacturer>;
-  updateManufacturer(id: number, userId: number, data: Partial<InsertManufacturer>): Promise<Manufacturer | undefined>;
-  deleteManufacturer(id: number, userId: number): Promise<boolean>;
+  getManufacturers(): Promise<Manufacturer[]>;
+  getManufacturer(id: number): Promise<Manufacturer | undefined>;
+  createManufacturer(data: InsertManufacturer): Promise<Manufacturer>;
+  updateManufacturer(id: number, data: Partial<InsertManufacturer>): Promise<Manufacturer | undefined>;
+  deleteManufacturer(id: number): Promise<boolean>;
 
-  getStoneSettingRates(userId: number): Promise<StoneSettingRate[]>;
-  getStoneSettingRate(id: number, userId: number): Promise<StoneSettingRate | undefined>;
-  createStoneSettingRate(data: InsertStoneSettingRate & { userId: number }): Promise<StoneSettingRate>;
-  updateStoneSettingRate(id: number, userId: number, data: Partial<InsertStoneSettingRate>): Promise<StoneSettingRate | undefined>;
-  deleteStoneSettingRate(id: number, userId: number): Promise<boolean>;
+  getStoneSettingRates(): Promise<StoneSettingRate[]>;
+  getStoneSettingRate(id: number): Promise<StoneSettingRate | undefined>;
+  createStoneSettingRate(data: InsertStoneSettingRate): Promise<StoneSettingRate>;
+  updateStoneSettingRate(id: number, data: Partial<InsertStoneSettingRate>): Promise<StoneSettingRate | undefined>;
+  deleteStoneSettingRate(id: number): Promise<boolean>;
 
-  getGemstonePriceLists(userId: number): Promise<GemstonePriceList[]>;
-  getGemstonePriceList(id: number, userId: number): Promise<GemstonePriceList | undefined>;
-  createGemstonePriceList(data: InsertGemstonePriceList & { userId: number }): Promise<GemstonePriceList>;
-  updateGemstonePriceList(id: number, userId: number, data: Partial<InsertGemstonePriceList>): Promise<GemstonePriceList | undefined>;
-  deleteGemstonePriceList(id: number, userId: number): Promise<boolean>;
+  getGemstonePriceLists(): Promise<GemstonePriceList[]>;
+  getGemstonePriceList(id: number): Promise<GemstonePriceList | undefined>;
+  createGemstonePriceList(data: InsertGemstonePriceList): Promise<GemstonePriceList>;
+  updateGemstonePriceList(id: number, data: Partial<InsertGemstonePriceList>): Promise<GemstonePriceList | undefined>;
+  deleteGemstonePriceList(id: number): Promise<boolean>;
 
   getAnalysisRecords(userId: number): Promise<AnalysisRecordWithRelations[]>;
   getAnalysisRecord(id: number, userId: number): Promise<AnalysisRecordWithRelations | undefined>;
@@ -68,14 +68,14 @@ export interface IStorage {
   updateAnalysisRecord(id: number, userId: number, data: Partial<InsertAnalysisRecord>, stones?: Omit<InsertAnalysisStone, 'analysisRecordId'>[]): Promise<AnalysisRecord | undefined>;
   deleteAnalysisRecord(id: number, userId: number): Promise<boolean>;
 
-  getLatestExchangeRate(userId: number): Promise<ExchangeRate | undefined>;
-  createExchangeRate(data: InsertExchangeRate & { userId: number }): Promise<ExchangeRate>;
+  getLatestExchangeRate(): Promise<ExchangeRate | undefined>;
+  createExchangeRate(data: InsertExchangeRate): Promise<ExchangeRate>;
   
-  getRapaportPrices(userId: number): Promise<RapaportPrice[]>;
-  createRapaportPrice(data: InsertRapaportPrice & { userId: number }): Promise<RapaportPrice>;
-  createRapaportPrices(data: (InsertRapaportPrice & { userId: number })[]): Promise<RapaportPrice[]>;
-  clearRapaportPrices(userId: number): Promise<void>;
-  findRapaportPrice(userId: number, shape: string, carat: number, color: string, clarity: string): Promise<RapaportPrice | undefined>;
+  getRapaportPrices(): Promise<RapaportPrice[]>;
+  createRapaportPrice(data: InsertRapaportPrice): Promise<RapaportPrice>;
+  createRapaportPrices(data: InsertRapaportPrice[]): Promise<RapaportPrice[]>;
+  clearRapaportPrices(): Promise<void>;
+  findRapaportPrice(shape: string, carat: number, color: string, clarity: string): Promise<RapaportPrice | undefined>;
 
   getBatches(userId: number): Promise<BatchWithRelations[]>;
   getBatchesByManufacturer(userId: number, manufacturerId: number): Promise<Batch[]>;
@@ -85,12 +85,12 @@ export interface IStorage {
   deleteBatch(id: number, userId: number): Promise<boolean>;
   getNextBatchNumber(userId: number, manufacturerId: number): Promise<number>;
 
-  getRapaportDiscountRates(userId: number): Promise<RapaportDiscountRate[]>;
-  getRapaportDiscountRate(id: number, userId: number): Promise<RapaportDiscountRate | undefined>;
-  createRapaportDiscountRate(data: InsertRapaportDiscountRate & { userId: number }): Promise<RapaportDiscountRate>;
-  updateRapaportDiscountRate(id: number, userId: number, data: Partial<InsertRapaportDiscountRate>): Promise<RapaportDiscountRate | undefined>;
-  deleteRapaportDiscountRate(id: number, userId: number): Promise<boolean>;
-  findRapaportDiscountRate(userId: number, carat: number): Promise<RapaportDiscountRate | undefined>;
+  getRapaportDiscountRates(): Promise<RapaportDiscountRate[]>;
+  getRapaportDiscountRate(id: number): Promise<RapaportDiscountRate | undefined>;
+  createRapaportDiscountRate(data: InsertRapaportDiscountRate): Promise<RapaportDiscountRate>;
+  updateRapaportDiscountRate(id: number, data: Partial<InsertRapaportDiscountRate>): Promise<RapaportDiscountRate | undefined>;
+  deleteRapaportDiscountRate(id: number): Promise<boolean>;
+  findRapaportDiscountRate(carat: number): Promise<RapaportDiscountRate | undefined>;
 
   getAdminSettings(): Promise<AdminSettings | undefined>;
   updateAdminSettings(data: InsertAdminSettings): Promise<AdminSettings>;
@@ -117,93 +117,75 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
-  async getManufacturers(userId: number): Promise<Manufacturer[]> {
-    return db.select().from(manufacturers).where(eq(manufacturers.userId, userId));
+  async getManufacturers(): Promise<Manufacturer[]> {
+    return db.select().from(manufacturers);
   }
 
-  async getManufacturer(id: number, userId: number): Promise<Manufacturer | undefined> {
-    const [manufacturer] = await db.select().from(manufacturers).where(
-      and(eq(manufacturers.id, id), eq(manufacturers.userId, userId))
-    );
+  async getManufacturer(id: number): Promise<Manufacturer | undefined> {
+    const [manufacturer] = await db.select().from(manufacturers).where(eq(manufacturers.id, id));
     return manufacturer || undefined;
   }
 
-  async createManufacturer(data: InsertManufacturer & { userId: number }): Promise<Manufacturer> {
+  async createManufacturer(data: InsertManufacturer): Promise<Manufacturer> {
     const [manufacturer] = await db.insert(manufacturers).values(data).returning();
     return manufacturer;
   }
 
-  async updateManufacturer(id: number, userId: number, data: Partial<InsertManufacturer>): Promise<Manufacturer | undefined> {
-    const [manufacturer] = await db.update(manufacturers).set(data).where(
-      and(eq(manufacturers.id, id), eq(manufacturers.userId, userId))
-    ).returning();
+  async updateManufacturer(id: number, data: Partial<InsertManufacturer>): Promise<Manufacturer | undefined> {
+    const [manufacturer] = await db.update(manufacturers).set(data).where(eq(manufacturers.id, id)).returning();
     return manufacturer || undefined;
   }
 
-  async deleteManufacturer(id: number, userId: number): Promise<boolean> {
-    const result = await db.delete(manufacturers).where(
-      and(eq(manufacturers.id, id), eq(manufacturers.userId, userId))
-    ).returning();
+  async deleteManufacturer(id: number): Promise<boolean> {
+    const result = await db.delete(manufacturers).where(eq(manufacturers.id, id)).returning();
     return result.length > 0;
   }
 
-  async getStoneSettingRates(userId: number): Promise<StoneSettingRate[]> {
-    return db.select().from(stoneSettingRates).where(eq(stoneSettingRates.userId, userId));
+  async getStoneSettingRates(): Promise<StoneSettingRate[]> {
+    return db.select().from(stoneSettingRates);
   }
 
-  async getStoneSettingRate(id: number, userId: number): Promise<StoneSettingRate | undefined> {
-    const [rate] = await db.select().from(stoneSettingRates).where(
-      and(eq(stoneSettingRates.id, id), eq(stoneSettingRates.userId, userId))
-    );
+  async getStoneSettingRate(id: number): Promise<StoneSettingRate | undefined> {
+    const [rate] = await db.select().from(stoneSettingRates).where(eq(stoneSettingRates.id, id));
     return rate || undefined;
   }
 
-  async createStoneSettingRate(data: InsertStoneSettingRate & { userId: number }): Promise<StoneSettingRate> {
+  async createStoneSettingRate(data: InsertStoneSettingRate): Promise<StoneSettingRate> {
     const [rate] = await db.insert(stoneSettingRates).values(data).returning();
     return rate;
   }
 
-  async updateStoneSettingRate(id: number, userId: number, data: Partial<InsertStoneSettingRate>): Promise<StoneSettingRate | undefined> {
-    const [rate] = await db.update(stoneSettingRates).set(data).where(
-      and(eq(stoneSettingRates.id, id), eq(stoneSettingRates.userId, userId))
-    ).returning();
+  async updateStoneSettingRate(id: number, data: Partial<InsertStoneSettingRate>): Promise<StoneSettingRate | undefined> {
+    const [rate] = await db.update(stoneSettingRates).set(data).where(eq(stoneSettingRates.id, id)).returning();
     return rate || undefined;
   }
 
-  async deleteStoneSettingRate(id: number, userId: number): Promise<boolean> {
-    const result = await db.delete(stoneSettingRates).where(
-      and(eq(stoneSettingRates.id, id), eq(stoneSettingRates.userId, userId))
-    ).returning();
+  async deleteStoneSettingRate(id: number): Promise<boolean> {
+    const result = await db.delete(stoneSettingRates).where(eq(stoneSettingRates.id, id)).returning();
     return result.length > 0;
   }
 
-  async getGemstonePriceLists(userId: number): Promise<GemstonePriceList[]> {
-    return db.select().from(gemstonePriceLists).where(eq(gemstonePriceLists.userId, userId));
+  async getGemstonePriceLists(): Promise<GemstonePriceList[]> {
+    return db.select().from(gemstonePriceLists);
   }
 
-  async getGemstonePriceList(id: number, userId: number): Promise<GemstonePriceList | undefined> {
-    const [price] = await db.select().from(gemstonePriceLists).where(
-      and(eq(gemstonePriceLists.id, id), eq(gemstonePriceLists.userId, userId))
-    );
+  async getGemstonePriceList(id: number): Promise<GemstonePriceList | undefined> {
+    const [price] = await db.select().from(gemstonePriceLists).where(eq(gemstonePriceLists.id, id));
     return price || undefined;
   }
 
-  async createGemstonePriceList(data: InsertGemstonePriceList & { userId: number }): Promise<GemstonePriceList> {
+  async createGemstonePriceList(data: InsertGemstonePriceList): Promise<GemstonePriceList> {
     const [price] = await db.insert(gemstonePriceLists).values(data).returning();
     return price;
   }
 
-  async updateGemstonePriceList(id: number, userId: number, data: Partial<InsertGemstonePriceList>): Promise<GemstonePriceList | undefined> {
-    const [price] = await db.update(gemstonePriceLists).set(data).where(
-      and(eq(gemstonePriceLists.id, id), eq(gemstonePriceLists.userId, userId))
-    ).returning();
+  async updateGemstonePriceList(id: number, data: Partial<InsertGemstonePriceList>): Promise<GemstonePriceList | undefined> {
+    const [price] = await db.update(gemstonePriceLists).set(data).where(eq(gemstonePriceLists.id, id)).returning();
     return price || undefined;
   }
 
-  async deleteGemstonePriceList(id: number, userId: number): Promise<boolean> {
-    const result = await db.delete(gemstonePriceLists).where(
-      and(eq(gemstonePriceLists.id, id), eq(gemstonePriceLists.userId, userId))
-    ).returning();
+  async deleteGemstonePriceList(id: number): Promise<boolean> {
+    const result = await db.delete(gemstonePriceLists).where(eq(gemstonePriceLists.id, id)).returning();
     return result.length > 0;
   }
 
@@ -213,7 +195,7 @@ export class DatabaseStorage implements IStorage {
     
     for (const record of records) {
       const manufacturer = record.manufacturerId 
-        ? await this.getManufacturer(record.manufacturerId, userId) 
+        ? await this.getManufacturer(record.manufacturerId) 
         : null;
       const stones = await db.select().from(analysisStones).where(eq(analysisStones.analysisRecordId, record.id));
       result.push({ ...record, manufacturer, stones });
@@ -229,7 +211,7 @@ export class DatabaseStorage implements IStorage {
     if (!record) return undefined;
 
     const manufacturer = record.manufacturerId 
-      ? await this.getManufacturer(record.manufacturerId, userId) 
+      ? await this.getManufacturer(record.manufacturerId) 
       : null;
     const stones = await db.select().from(analysisStones).where(eq(analysisStones.analysisRecordId, record.id));
     
@@ -332,43 +314,41 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
-  async getLatestExchangeRate(userId: number): Promise<ExchangeRate | undefined> {
+  async getLatestExchangeRate(): Promise<ExchangeRate | undefined> {
     const [rate] = await db.select().from(exchangeRates)
-      .where(eq(exchangeRates.userId, userId))
       .orderBy(desc(exchangeRates.updatedAt))
       .limit(1);
     return rate || undefined;
   }
 
-  async createExchangeRate(data: InsertExchangeRate & { userId: number }): Promise<ExchangeRate> {
+  async createExchangeRate(data: InsertExchangeRate): Promise<ExchangeRate> {
     const [rate] = await db.insert(exchangeRates).values(data).returning();
     return rate;
   }
 
-  async getRapaportPrices(userId: number): Promise<RapaportPrice[]> {
-    return db.select().from(rapaportPrices).where(eq(rapaportPrices.userId, userId));
+  async getRapaportPrices(): Promise<RapaportPrice[]> {
+    return db.select().from(rapaportPrices);
   }
 
-  async createRapaportPrice(data: InsertRapaportPrice & { userId: number }): Promise<RapaportPrice> {
+  async createRapaportPrice(data: InsertRapaportPrice): Promise<RapaportPrice> {
     const [price] = await db.insert(rapaportPrices).values(data).returning();
     return price;
   }
 
-  async createRapaportPrices(data: (InsertRapaportPrice & { userId: number })[]): Promise<RapaportPrice[]> {
+  async createRapaportPrices(data: InsertRapaportPrice[]): Promise<RapaportPrice[]> {
     if (data.length === 0) return [];
     const results = await db.insert(rapaportPrices).values(data).returning();
     return results;
   }
 
-  async clearRapaportPrices(userId: number): Promise<void> {
-    await db.delete(rapaportPrices).where(eq(rapaportPrices.userId, userId));
+  async clearRapaportPrices(): Promise<void> {
+    await db.delete(rapaportPrices);
   }
 
-  async findRapaportPrice(userId: number, shape: string, carat: number, color: string, clarity: string): Promise<RapaportPrice | undefined> {
+  async findRapaportPrice(shape: string, carat: number, color: string, clarity: string): Promise<RapaportPrice | undefined> {
     const caratStr = carat.toString();
     const [price] = await db.select().from(rapaportPrices).where(
       and(
-        eq(rapaportPrices.userId, userId),
         eq(rapaportPrices.shape, shape),
         eq(rapaportPrices.color, color),
         eq(rapaportPrices.clarity, clarity),
@@ -386,7 +366,7 @@ export class DatabaseStorage implements IStorage {
     const result: BatchWithRelations[] = [];
     
     for (const batch of allBatches) {
-      const manufacturer = await this.getManufacturer(batch.manufacturerId, userId);
+      const manufacturer = await this.getManufacturer(batch.manufacturerId);
       const records = await db.select().from(analysisRecords).where(eq(analysisRecords.batchId, batch.id));
       result.push({ ...batch, manufacturer, analysisRecords: records });
     }
@@ -406,7 +386,7 @@ export class DatabaseStorage implements IStorage {
     );
     if (!batch) return undefined;
 
-    const manufacturer = await this.getManufacturer(batch.manufacturerId, userId);
+    const manufacturer = await this.getManufacturer(batch.manufacturerId);
     const records = await db.select().from(analysisRecords).where(eq(analysisRecords.batchId, batch.id));
     
     return { ...batch, manufacturer, analysisRecords: records };
@@ -418,7 +398,7 @@ export class DatabaseStorage implements IStorage {
     );
     if (!batch) return undefined;
 
-    const manufacturer = await this.getManufacturer(batch.manufacturerId, userId);
+    const manufacturer = await this.getManufacturer(batch.manufacturerId);
     const batchRecords = await db.select().from(analysisRecords).where(eq(analysisRecords.batchId, batch.id));
     
     const recordsWithStones: AnalysisRecordWithRelations[] = [];
@@ -462,41 +442,34 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
-  async getRapaportDiscountRates(userId: number): Promise<RapaportDiscountRate[]> {
-    return db.select().from(rapaportDiscountRates).where(eq(rapaportDiscountRates.userId, userId));
+  async getRapaportDiscountRates(): Promise<RapaportDiscountRate[]> {
+    return db.select().from(rapaportDiscountRates);
   }
 
-  async getRapaportDiscountRate(id: number, userId: number): Promise<RapaportDiscountRate | undefined> {
-    const [rate] = await db.select().from(rapaportDiscountRates).where(
-      and(eq(rapaportDiscountRates.id, id), eq(rapaportDiscountRates.userId, userId))
-    );
+  async getRapaportDiscountRate(id: number): Promise<RapaportDiscountRate | undefined> {
+    const [rate] = await db.select().from(rapaportDiscountRates).where(eq(rapaportDiscountRates.id, id));
     return rate || undefined;
   }
 
-  async createRapaportDiscountRate(data: InsertRapaportDiscountRate & { userId: number }): Promise<RapaportDiscountRate> {
+  async createRapaportDiscountRate(data: InsertRapaportDiscountRate): Promise<RapaportDiscountRate> {
     const [rate] = await db.insert(rapaportDiscountRates).values(data).returning();
     return rate;
   }
 
-  async updateRapaportDiscountRate(id: number, userId: number, data: Partial<InsertRapaportDiscountRate>): Promise<RapaportDiscountRate | undefined> {
-    const [rate] = await db.update(rapaportDiscountRates).set(data).where(
-      and(eq(rapaportDiscountRates.id, id), eq(rapaportDiscountRates.userId, userId))
-    ).returning();
+  async updateRapaportDiscountRate(id: number, data: Partial<InsertRapaportDiscountRate>): Promise<RapaportDiscountRate | undefined> {
+    const [rate] = await db.update(rapaportDiscountRates).set(data).where(eq(rapaportDiscountRates.id, id)).returning();
     return rate || undefined;
   }
 
-  async deleteRapaportDiscountRate(id: number, userId: number): Promise<boolean> {
-    const result = await db.delete(rapaportDiscountRates).where(
-      and(eq(rapaportDiscountRates.id, id), eq(rapaportDiscountRates.userId, userId))
-    ).returning();
+  async deleteRapaportDiscountRate(id: number): Promise<boolean> {
+    const result = await db.delete(rapaportDiscountRates).where(eq(rapaportDiscountRates.id, id)).returning();
     return result.length > 0;
   }
 
-  async findRapaportDiscountRate(userId: number, carat: number): Promise<RapaportDiscountRate | undefined> {
+  async findRapaportDiscountRate(carat: number): Promise<RapaportDiscountRate | undefined> {
     const caratStr = carat.toString();
     const [rate] = await db.select().from(rapaportDiscountRates)
       .where(and(
-        eq(rapaportDiscountRates.userId, userId),
         lte(rapaportDiscountRates.minCarat, caratStr),
         gte(rapaportDiscountRates.maxCarat, caratStr)
       ));
@@ -504,17 +477,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAdminSettings(): Promise<AdminSettings | undefined> {
-    const [settings] = await db.select().from(adminSettings).limit(1);
+    const [settings] = await db.select().from(adminSettings);
     return settings || undefined;
   }
 
   async updateAdminSettings(data: InsertAdminSettings): Promise<AdminSettings> {
     const existing = await this.getAdminSettings();
     if (existing) {
-      const [updated] = await db.update(adminSettings)
-        .set({ ...data, updatedAt: new Date() })
-        .where(eq(adminSettings.id, existing.id))
-        .returning();
+      const [updated] = await db.update(adminSettings).set({
+        ...data,
+        updatedAt: new Date(),
+      }).where(eq(adminSettings.id, existing.id)).returning();
       return updated;
     } else {
       const [created] = await db.insert(adminSettings).values(data).returning();
