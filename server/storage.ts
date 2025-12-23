@@ -267,7 +267,9 @@ export class DatabaseStorage implements IStorage {
 
     const mergedData = {
       manufacturerId: data.manufacturerId !== undefined ? data.manufacturerId : existing.manufacturerId,
+      batchId: data.batchId !== undefined ? data.batchId : existing.batchId,
       productCode: data.productCode !== undefined ? data.productCode : existing.productCode,
+      productType: data.productType !== undefined ? data.productType : existing.productType,
       totalGrams: data.totalGrams !== undefined ? data.totalGrams : existing.totalGrams,
       goldPurity: data.goldPurity !== undefined ? data.goldPurity : existing.goldPurity,
       goldLaborCost: data.goldLaborCost !== undefined ? data.goldLaborCost : existing.goldLaborCost,
@@ -275,6 +277,14 @@ export class DatabaseStorage implements IStorage {
       firePercentage: data.firePercentage !== undefined ? data.firePercentage : existing.firePercentage,
       polishAmount: data.polishAmount !== undefined ? data.polishAmount : existing.polishAmount,
       certificateAmount: data.certificateAmount !== undefined ? data.certificateAmount : existing.certificateAmount,
+      manufacturerPrice: data.manufacturerPrice !== undefined ? data.manufacturerPrice : existing.manufacturerPrice,
+      rawMaterialCost: data.rawMaterialCost !== undefined ? data.rawMaterialCost : existing.rawMaterialCost,
+      laborCost: data.laborCost !== undefined ? data.laborCost : existing.laborCost,
+      totalSettingCost: data.totalSettingCost !== undefined ? data.totalSettingCost : existing.totalSettingCost,
+      totalStoneCost: data.totalStoneCost !== undefined ? data.totalStoneCost : existing.totalStoneCost,
+      profitLoss: data.profitLoss !== undefined ? data.profitLoss : existing.profitLoss,
+      goldPriceUsed: data.goldPriceUsed !== undefined ? data.goldPriceUsed : existing.goldPriceUsed,
+      usdTryUsed: data.usdTryUsed !== undefined ? data.usdTryUsed : existing.usdTryUsed,
     };
 
     if (stonesData !== undefined) {

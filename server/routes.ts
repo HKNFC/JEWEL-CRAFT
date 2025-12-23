@@ -481,6 +481,7 @@ export async function registerRoutes(
       const record = await storage.updateAnalysisRecord(id, req.session.userId!, {
         ...recordData,
         manufacturerId: recordData.manufacturerId ? parseInt(recordData.manufacturerId) : null,
+        batchId: recordData.batchId ? parseInt(recordData.batchId) : null,
         goldPurity: recordData.goldPurity || "24",
         goldLaborCost: toNullIfEmpty(recordData.goldLaborCost),
         firePercentage: toNullIfEmpty(recordData.firePercentage),
