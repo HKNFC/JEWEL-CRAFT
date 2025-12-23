@@ -23,12 +23,23 @@ const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
+const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Oturum açmanız gerekiyor" });
+  }
+  const user = await storage.getUser(req.session.userId);
+  if (!user?.isAdmin) {
+    return res.status(403).json({ error: "Bu işlem için admin yetkisi gerekiyor" });
+  }
+  next();
+};
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
 
-  app.post("/api/auth/register", async (req, res) => {
+  app.post("/api/admin/users", requireAdmin, async (req, res) => {
     try {
       const registerSchema = insertUserSchema.extend({
         password: z.string().min(6, "Şifre en az 6 karakter olmalı"),
@@ -47,13 +58,36 @@ export async function registerRoutes(
       const passwordHash = await bcrypt.hash(password, 10);
       const user = await storage.createUser({ ...userData, passwordHash });
       
-      req.session.userId = user.id;
-      
       const { passwordHash: _, ...safeUser } = user;
       res.status(201).json(safeUser);
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: "Kayıt sırasında bir hata oluştu" });
+      res.status(500).json({ error: "Kullanıcı oluşturulurken bir hata oluştu" });
+    }
+  });
+
+  app.get("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      const safeUsers = users.map(({ passwordHash, ...u }) => u);
+      res.json(safeUsers);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Kullanıcılar alınırken bir hata oluştu" });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", requireAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      if (userId === req.session.userId) {
+        return res.status(400).json({ error: "Kendi hesabınızı silemezsiniz" });
+      }
+      await storage.deleteUser(userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Kullanıcı silinirken bir hata oluştu" });
     }
   });
 
