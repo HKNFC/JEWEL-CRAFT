@@ -87,6 +87,10 @@ export function AppSidebar() {
     setLocation("/login");
   };
 
+  if (!user) {
+    return null;
+  }
+
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border p-4">
