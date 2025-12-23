@@ -419,6 +419,7 @@ export async function registerRoutes(
       const toNullIfEmpty = (val: any) => (val === "" || val === undefined) ? null : val;
       const parsed = insertAnalysisRecordSchema.safeParse({
         ...recordData,
+        userId: req.session.userId!,
         manufacturerId: recordData.manufacturerId ? parseInt(recordData.manufacturerId) : null,
         goldPurity: recordData.goldPurity || "24",
         goldLaborCost: toNullIfEmpty(recordData.goldLaborCost),
@@ -451,7 +452,7 @@ export async function registerRoutes(
         rapaportPrice: stone.rapaportPrice?.toString() || null,
         discountPercent: stone.discountPercent?.toString() || null,
       }));
-      const record = await storage.createAnalysisRecord({ ...parsed.data, userId: req.session.userId! }, formattedStones);
+      const record = await storage.createAnalysisRecord(parsed.data, formattedStones);
       res.status(201).json(record);
     } catch (error) {
       console.error(error);
