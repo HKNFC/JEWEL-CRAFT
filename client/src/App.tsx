@@ -90,16 +90,11 @@ function AppRoutes() {
     );
   }
 
-  return (
-    <Switch>
-      <Route path="/login">
-        {isAuthenticated ? <Redirect to="/" /> : <LoginPage />}
-      </Route>
-      <Route>
-        <AuthenticatedLayout />
-      </Route>
-    </Switch>
-  );
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
+  return <AuthenticatedLayout />;
 }
 
 function App() {
