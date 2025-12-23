@@ -795,10 +795,11 @@ export async function registerRoutes(
 
   app.patch("/api/admin/settings", requireAdmin, async (req, res) => {
     try {
-      const { ownerEmail, ccEmails } = req.body;
+      const { ownerEmail, ccEmails, globalEmailApiKey } = req.body;
       const settings = await storage.updateAdminSettings({
         ownerEmail: ownerEmail || null,
         ccEmails: ccEmails || [],
+        globalEmailApiKey: globalEmailApiKey || null,
       });
       res.json(settings);
     } catch (error) {
