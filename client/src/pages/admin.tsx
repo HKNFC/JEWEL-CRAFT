@@ -134,7 +134,15 @@ export default function AdminPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateMutation.mutate({ ownerEmail, ccEmails, globalEmailApiKey: globalEmailApiKey || undefined });
+    // Eğer yeni CC e-posta alanında yazılmış ama eklenmemiş bir e-posta varsa, otomatik ekle
+    let finalCcEmails = [...ccEmails];
+    const pendingEmail = newCcEmail.trim();
+    if (pendingEmail && pendingEmail.includes("@") && !ccEmails.includes(pendingEmail)) {
+      finalCcEmails.push(pendingEmail);
+      setCcEmails(finalCcEmails);
+      setNewCcEmail("");
+    }
+    updateMutation.mutate({ ownerEmail, ccEmails: finalCcEmails, globalEmailApiKey: globalEmailApiKey || undefined });
   };
 
   if (isLoading) {
