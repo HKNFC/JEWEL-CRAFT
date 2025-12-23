@@ -820,12 +820,11 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Kullanıcı bulunamadı" });
       }
 
-      const apiKey = user.emailApiKey || process.env.RESEND_API_KEY;
-      if (!apiKey) {
-        return res.status(400).json({ error: "Email API anahtarı ayarlanmamış. Lütfen Ayarlar sayfasından API anahtarınızı girin." });
-      }
-
       const adminSettings = await storage.getAdminSettings();
+      const apiKey = user.emailApiKey || adminSettings?.globalEmailApiKey || process.env.RESEND_API_KEY;
+      if (!apiKey) {
+        return res.status(400).json({ error: "Email API anahtarı ayarlanmamış. Lütfen Admin sayfasından API anahtarını girin." });
+      }
       const ccList: string[] = [];
       if (adminSettings?.ownerEmail) {
         ccList.push(adminSettings.ownerEmail);

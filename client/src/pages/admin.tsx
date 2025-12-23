@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Mail, Plus, X, Users, Trash2, UserPlus } from "lucide-react";
+import { Loader2, Mail, Plus, X, Users, Trash2, UserPlus, Key } from "lucide-react";
 import type { AdminSettings, User } from "@shared/schema";
 
 type SafeUser = Omit<User, "passwordHash">;
@@ -29,6 +29,7 @@ export default function AdminPage() {
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ccEmails, setCcEmails] = useState<string[]>([]);
   const [newCcEmail, setNewCcEmail] = useState("");
+  const [globalEmailApiKey, setGlobalEmailApiKey] = useState("");
   
   const [showNewUserDialog, setShowNewUserDialog] = useState(false);
   const [newUser, setNewUser] = useState({
@@ -44,11 +45,12 @@ export default function AdminPage() {
     if (settings) {
       setOwnerEmail(settings.ownerEmail || "");
       setCcEmails(settings.ccEmails || []);
+      setGlobalEmailApiKey(settings.globalEmailApiKey || "");
     }
   }, [settings]);
 
   const updateMutation = useMutation({
-    mutationFn: async (data: { ownerEmail: string; ccEmails: string[] }) => {
+    mutationFn: async (data: { ownerEmail: string; ccEmails: string[]; globalEmailApiKey?: string }) => {
       const res = await apiRequest("PATCH", "/api/admin/settings", data);
       return res.json();
     },
@@ -132,7 +134,7 @@ export default function AdminPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateMutation.mutate({ ownerEmail, ccEmails });
+    updateMutation.mutate({ ownerEmail, ccEmails, globalEmailApiKey: globalEmailApiKey || undefined });
   };
 
   if (isLoading) {
@@ -162,6 +164,21 @@ export default function AdminPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="globalEmailApiKey">Resend API Anahtarı</Label>
+              <Input
+                id="globalEmailApiKey"
+                type="password"
+                data-testid="input-global-email-api-key"
+                placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxx"
+                value={globalEmailApiKey}
+                onChange={(e) => setGlobalEmailApiKey(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                E-posta göndermek için kullanılacak Resend API anahtarı. Tüm kullanıcılar bu anahtarı kullanacak.
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="ownerEmail">İş Sahibi E-posta</Label>
               <Input
