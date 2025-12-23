@@ -32,6 +32,9 @@ export default function AdminPage() {
   const [globalEmailApiKey, setGlobalEmailApiKey] = useState("");
   
   const [showNewUserDialog, setShowNewUserDialog] = useState(false);
+  const [showResetPasswordDialog, setShowResetPasswordDialog] = useState(false);
+  const [selectedUserForReset, setSelectedUserForReset] = useState<SafeUser | null>(null);
+  const [newPassword, setNewPassword] = useState("");
   const [newUser, setNewUser] = useState({
     companyName: "",
     username: "",
@@ -100,6 +103,26 @@ export default function AdminPage() {
       toast({
         title: "Hata",
         description: error?.message || "Kullanıcı silinemedi",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ id, newPassword }: { id: number; newPassword: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/users/${id}/password`, { newPassword });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Şifre güncellendi" });
+      setShowResetPasswordDialog(false);
+      setSelectedUserForReset(null);
+      setNewPassword("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Hata",
+        description: error?.message || "Şifre güncellenemedi",
         variant: "destructive",
       });
     },
@@ -441,19 +464,34 @@ export default function AdminPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          data-testid={`button-delete-user-${user.id}`}
-                          onClick={() => {
-                            if (confirm(`${user.username} kullanıcısını silmek istediğinize emin misiniz?`)) {
-                              deleteUserMutation.mutate(user.id);
-                            }
-                          }}
-                          disabled={deleteUserMutation.isPending}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            data-testid={`button-reset-password-${user.id}`}
+                            onClick={() => {
+                              setSelectedUserForReset(user);
+                              setNewPassword("");
+                              setShowResetPasswordDialog(true);
+                            }}
+                            title="Şifre Sıfırla"
+                          >
+                            <Key className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            data-testid={`button-delete-user-${user.id}`}
+                            onClick={() => {
+                              if (confirm(`${user.username} kullanıcısını silmek istediğinize emin misiniz?`)) {
+                                deleteUserMutation.mutate(user.id);
+                              }
+                            }}
+                            disabled={deleteUserMutation.isPending}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -465,6 +503,63 @@ export default function AdminPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={showResetPasswordDialog} onOpenChange={setShowResetPasswordDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Şifre Sıfırla</DialogTitle>
+          </DialogHeader>
+          {selectedUserForReset && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (newPassword.length < 6) {
+                  toast({ title: "Hata", description: "Şifre en az 6 karakter olmalı", variant: "destructive" });
+                  return;
+                }
+                resetPasswordMutation.mutate({ id: selectedUserForReset.id, newPassword });
+              }}
+              className="space-y-4"
+            >
+              <p className="text-sm text-muted-foreground">
+                <strong>{selectedUserForReset.username}</strong> kullanıcısı için yeni şifre belirleyin.
+              </p>
+              <div className="space-y-2">
+                <Label>Yeni Şifre *</Label>
+                <Input
+                  type="password"
+                  data-testid="input-new-password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="En az 6 karakter"
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowResetPasswordDialog(false);
+                    setSelectedUserForReset(null);
+                    setNewPassword("");
+                  }}
+                >
+                  İptal
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={resetPasswordMutation.isPending}
+                  data-testid="button-confirm-reset-password"
+                >
+                  {resetPasswordMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Şifreyi Güncelle
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
