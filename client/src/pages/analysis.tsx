@@ -587,8 +587,8 @@ export default function AnalysisPage() {
     const pricingType = settingRate.pricingType || "perPiece";
     
     if (pricingType === "perCarat") {
-      // Karat Fiyatı: Toplam Karat × Karat Mıhlama Fiyatı (taş adedi girmeden, caratSize = toplam karat)
-      return caratSize * price;
+      // Karat Fiyatı: Toplam Karat (karat × adet) × Karat Mıhlama Fiyatı
+      return caratSize * quantity * price;
     } else {
       // Adet Fiyatı: Taş Adeti × Adet Fiyatı
       return quantity * price;
