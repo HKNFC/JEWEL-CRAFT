@@ -58,18 +58,18 @@ function AuthenticatedLayout() {
           </header>
           <main className="flex-1 overflow-auto">
             <Switch>
-              <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
-              <Route path="/manufacturers" component={() => <ProtectedRoute component={ManufacturersPage} />} />
-              <Route path="/stone-rates" component={() => <ProtectedRoute component={StoneRatesPage} />} />
-              <Route path="/gemstone-prices" component={() => <ProtectedRoute component={GemstonePricesPage} />} />
-              <Route path="/analysis" component={() => <ProtectedRoute component={AnalysisPage} />} />
-              <Route path="/exchange-rates" component={() => <ProtectedRoute component={ExchangeRatesPage} />} />
-              <Route path="/rapaport" component={() => <ProtectedRoute component={RapaportPage} />} />
-              <Route path="/rapaport-discount-rates" component={() => <ProtectedRoute component={RapaportDiscountRatesPage} />} />
-              <Route path="/batches" component={() => <ProtectedRoute component={BatchListPage} />} />
-              <Route path="/batch/:id" component={() => <ProtectedRoute component={BatchDetailPage} />} />
-              <Route path="/settings" component={() => <ProtectedRoute component={SettingsPage} />} />
-              <Route path="/admin" component={() => <ProtectedRoute component={AdminPage} />} />
+              <Route path="/" component={Dashboard} />
+              <Route path="/manufacturers" component={ManufacturersPage} />
+              <Route path="/stone-rates" component={StoneRatesPage} />
+              <Route path="/gemstone-prices" component={GemstonePricesPage} />
+              <Route path="/analysis" component={AnalysisPage} />
+              <Route path="/exchange-rates" component={ExchangeRatesPage} />
+              <Route path="/rapaport" component={RapaportPage} />
+              <Route path="/rapaport-discount-rates" component={RapaportDiscountRatesPage} />
+              <Route path="/batches" component={BatchListPage} />
+              <Route path="/batch/:id" component={BatchDetailPage} />
+              <Route path="/settings" component={SettingsPage} />
+              <Route path="/admin" component={AdminPage} />
               <Route component={NotFound} />
             </Switch>
           </main>
