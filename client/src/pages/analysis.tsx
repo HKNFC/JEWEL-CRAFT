@@ -603,11 +603,20 @@ export default function AnalysisPage() {
     return discountRate ? parseFloat(discountRate.discountPercent) : undefined;
   };
 
+  const invalidateAllRelatedQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/analysis-records"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/batches"] });
+    // Tüm batch detay sorgularını invalidate et
+    queryClient.invalidateQueries({ predicate: (query) => 
+      query.queryKey[0]?.toString().startsWith("/api/batches/") ?? false
+    });
+  };
+
   const createMutation = useMutation({
     mutationFn: (data: { record: AnalysisFormValues; stones: StoneEntry[] }) => 
       apiRequest("POST", "/api/analysis-records", { ...data.record, stones: data.stones }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/analysis-records"] });
+      invalidateAllRelatedQueries();
       toast({ title: "Analiz kaydı oluşturuldu" });
       resetForm();
     },
@@ -620,7 +629,7 @@ export default function AnalysisPage() {
     mutationFn: (data: { id: number; record: AnalysisFormValues; stones: StoneEntry[] }) => 
       apiRequest("PATCH", `/api/analysis-records/${data.id}`, { ...data.record, stones: data.stones }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/analysis-records"] });
+      invalidateAllRelatedQueries();
       toast({ title: "Analiz kaydı güncellendi" });
       resetForm();
     },
@@ -633,7 +642,7 @@ export default function AnalysisPage() {
     mutationFn: (id: number) => 
       apiRequest("DELETE", `/api/analysis-records/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/analysis-records"] });
+      invalidateAllRelatedQueries();
       toast({ title: "Analiz kaydı silindi" });
     },
     onError: () => {
