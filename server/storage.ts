@@ -208,8 +208,11 @@ export class DatabaseStorage implements IStorage {
       const manufacturer = record.manufacturerId 
         ? await this.getManufacturer(record.manufacturerId) 
         : null;
+      const batch = record.batchId
+        ? (await db.select().from(batches).where(eq(batches.id, record.batchId)))[0] || null
+        : null;
       const stones = await db.select().from(analysisStones).where(eq(analysisStones.analysisRecordId, record.id));
-      result.push({ ...record, manufacturer, stones });
+      result.push({ ...record, manufacturer, batch, stones });
     }
     
     return result;
@@ -224,9 +227,12 @@ export class DatabaseStorage implements IStorage {
     const manufacturer = record.manufacturerId 
       ? await this.getManufacturer(record.manufacturerId) 
       : null;
+    const batch = record.batchId
+      ? (await db.select().from(batches).where(eq(batches.id, record.batchId)))[0] || null
+      : null;
     const stones = await db.select().from(analysisStones).where(eq(analysisStones.analysisRecordId, record.id));
     
-    return { ...record, manufacturer, stones };
+    return { ...record, manufacturer, batch, stones };
   }
 
   async createAnalysisRecord(data: InsertAnalysisRecord & { userId: number }, stonesData: Omit<InsertAnalysisStone, 'analysisRecordId'>[]): Promise<AnalysisRecord> {
