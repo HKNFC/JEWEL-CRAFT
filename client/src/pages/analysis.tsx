@@ -522,11 +522,9 @@ export default function AnalysisPage() {
 
     let laborCost = 0;
     if (goldLaborType === "gold") {
-      // İşçilik gram olarak girilmiş ise: (toplam gram × işçilik tutarı) × altın fiyatı USD
-      laborCost = safeNumber((totalGrams * goldLaborCost) * goldPriceUsd);
+      laborCost = safeNumber(goldLaborCost * goldPriceUsd);
     } else {
-      // İşçilik USD olarak girilmiş ise: toplam gram × işçilik tutarı
-      laborCost = safeNumber(totalGrams * goldLaborCost);
+      laborCost = safeNumber(goldLaborCost);
     }
     laborCost += safeNumber(polishAmount);
 
@@ -580,19 +578,7 @@ export default function AnalysisPage() {
       (r.stoneCategory === category || (!r.stoneCategory && category === "diamond")) &&
       caratSize >= parseFloat(r.minCarat) && caratSize <= parseFloat(r.maxCarat)
     );
-    
-    if (!settingRate) return 0;
-    
-    const price = parseFloat(settingRate.pricePerStone);
-    const pricingType = settingRate.pricingType || "perPiece";
-    
-    if (pricingType === "perCarat") {
-      // Karat Fiyatı: Toplam Karat (karat × adet) × Karat Mıhlama Fiyatı
-      return caratSize * quantity * price;
-    } else {
-      // Adet Fiyatı: Taş Adeti × Adet Fiyatı
-      return quantity * price;
-    }
+    return settingRate ? parseFloat(settingRate.pricePerStone) * quantity : 0;
   };
 
   const getDiscountRateForCarat = (caratSize: number): number | undefined => {
@@ -603,20 +589,11 @@ export default function AnalysisPage() {
     return discountRate ? parseFloat(discountRate.discountPercent) : undefined;
   };
 
-  const invalidateAllRelatedQueries = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/analysis-records"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/batches"] });
-    // Tüm batch detay sorgularını invalidate et
-    queryClient.invalidateQueries({ predicate: (query) => 
-      query.queryKey[0]?.toString().startsWith("/api/batches/") ?? false
-    });
-  };
-
   const createMutation = useMutation({
     mutationFn: (data: { record: AnalysisFormValues; stones: StoneEntry[] }) => 
       apiRequest("POST", "/api/analysis-records", { ...data.record, stones: data.stones }),
     onSuccess: () => {
-      invalidateAllRelatedQueries();
+      queryClient.invalidateQueries({ queryKey: ["/api/analysis-records"] });
       toast({ title: "Analiz kaydı oluşturuldu" });
       resetForm();
     },
@@ -629,7 +606,7 @@ export default function AnalysisPage() {
     mutationFn: (data: { id: number; record: AnalysisFormValues; stones: StoneEntry[] }) => 
       apiRequest("PATCH", `/api/analysis-records/${data.id}`, { ...data.record, stones: data.stones }),
     onSuccess: () => {
-      invalidateAllRelatedQueries();
+      queryClient.invalidateQueries({ queryKey: ["/api/analysis-records"] });
       toast({ title: "Analiz kaydı güncellendi" });
       resetForm();
     },
@@ -642,7 +619,7 @@ export default function AnalysisPage() {
     mutationFn: (id: number) => 
       apiRequest("DELETE", `/api/analysis-records/${id}`),
     onSuccess: () => {
-      invalidateAllRelatedQueries();
+      queryClient.invalidateQueries({ queryKey: ["/api/analysis-records"] });
       toast({ title: "Analiz kaydı silindi" });
     },
     onError: () => {

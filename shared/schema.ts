@@ -21,7 +21,6 @@ export const adminSettings = pgTable("admin_settings", {
   id: serial("id").primaryKey(),
   ownerEmail: text("owner_email"),
   ccEmails: text("cc_emails").array(),
-  globalEmailApiKey: text("global_email_api_key"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
@@ -39,7 +38,6 @@ export const manufacturers = pgTable("manufacturers", {
 export const stoneSettingRates = pgTable("stone_setting_rates", {
   id: serial("id").primaryKey(),
   stoneCategory: text("stone_category").notNull().default("diamond"),
-  pricingType: text("pricing_type").notNull().default("perPiece"), // "perPiece" = Adet Fiyatı, "perCarat" = Karat Fiyatı
   minCarat: decimal("min_carat", { precision: 6, scale: 4 }).notNull(),
   maxCarat: decimal("max_carat", { precision: 6, scale: 4 }).notNull(),
   pricePerStone: decimal("price_per_stone", { precision: 10, scale: 2 }).notNull(),
@@ -56,7 +54,6 @@ export const gemstonePriceLists = pgTable("gemstone_price_lists", {
 
 export const analysisRecords = pgTable("analysis_records", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
   manufacturerId: integer("manufacturer_id").references(() => manufacturers.id),
   batchId: integer("batch_id").references(() => batches.id),
   productCode: text("product_code").notNull(),
@@ -125,7 +122,6 @@ export const rapaportDiscountRates = pgTable("rapaport_discount_rates", {
 
 export const batches = pgTable("batches", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
   manufacturerId: integer("manufacturer_id").references(() => manufacturers.id).notNull(),
   batchNumber: integer("batch_number").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

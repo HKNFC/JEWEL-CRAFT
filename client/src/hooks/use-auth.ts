@@ -5,12 +5,12 @@ import type { User } from "@shared/schema";
 type SafeUser = Omit<User, "passwordHash">;
 
 export function useAuth() {
-  const { data: user, isLoading, error, refetch } = useQuery<SafeUser | null>({
+  const { data: user, isLoading, error } = useQuery<SafeUser | null>({
     queryKey: ["/api/auth/me"],
     queryFn: getQueryFn({ on401: "returnNull" }),
     retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnMount: true,
+    staleTime: Infinity,
+    refetchOnMount: false,
     refetchOnWindowFocus: false,
   });
 
@@ -19,8 +19,8 @@ export function useAuth() {
       const res = await apiRequest("POST", "/api/auth/login", data);
       return res.json();
     },
-    onSuccess: (data) => {
-      queryClient.setQueryData(["/api/auth/me"], data);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
     },
   });
 
@@ -40,6 +40,7 @@ export function useAuth() {
       return res.json();
     },
     onSuccess: () => {
+      queryClient.clear();
       queryClient.setQueryData(["/api/auth/me"], null);
     },
   });

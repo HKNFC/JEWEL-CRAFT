@@ -7,13 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Mail, Plus, X, Users, Trash2, UserPlus, Key } from "lucide-react";
-import type { AdminSettings, User } from "@shared/schema";
-
-type SafeUser = Omit<User, "passwordHash">;
+import { Loader2, Settings, Mail, Plus, X, Users } from "lucide-react";
+import type { AdminSettings } from "@shared/schema";
 
 export default function AdminPage() {
   const { toast } = useToast();
@@ -22,38 +17,19 @@ export default function AdminPage() {
     queryKey: ["/api/admin/settings"],
   });
 
-  const { data: users, isLoading: usersLoading } = useQuery<SafeUser[]>({
-    queryKey: ["/api/admin/users"],
-  });
-
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ccEmails, setCcEmails] = useState<string[]>([]);
   const [newCcEmail, setNewCcEmail] = useState("");
-  const [globalEmailApiKey, setGlobalEmailApiKey] = useState("");
-  
-  const [showNewUserDialog, setShowNewUserDialog] = useState(false);
-  const [showResetPasswordDialog, setShowResetPasswordDialog] = useState(false);
-  const [selectedUserForReset, setSelectedUserForReset] = useState<SafeUser | null>(null);
-  const [newPassword, setNewPassword] = useState("");
-  const [newUser, setNewUser] = useState({
-    companyName: "",
-    username: "",
-    password: "",
-    fullName: "",
-    email: "",
-    isAdmin: false,
-  });
 
   useEffect(() => {
     if (settings) {
       setOwnerEmail(settings.ownerEmail || "");
       setCcEmails(settings.ccEmails || []);
-      setGlobalEmailApiKey(settings.globalEmailApiKey || "");
     }
   }, [settings]);
 
   const updateMutation = useMutation({
-    mutationFn: async (data: { ownerEmail: string; ccEmails: string[]; globalEmailApiKey?: string }) => {
+    mutationFn: async (data: { ownerEmail: string; ccEmails: string[] }) => {
       const res = await apiRequest("PATCH", "/api/admin/settings", data);
       return res.json();
     },
@@ -65,64 +41,6 @@ export default function AdminPage() {
       toast({
         title: "Hata",
         description: error?.message || "Ayarlar kaydedilemedi",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const createUserMutation = useMutation({
-    mutationFn: async (data: typeof newUser) => {
-      const res = await apiRequest("POST", "/api/admin/users", data);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      toast({ title: "Kullanıcı oluşturuldu" });
-      setShowNewUserDialog(false);
-      setNewUser({ companyName: "", username: "", password: "", fullName: "", email: "", isAdmin: false });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Hata",
-        description: error?.message || "Kullanıcı oluşturulamadı",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const deleteUserMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/admin/users/${id}`);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      toast({ title: "Kullanıcı silindi" });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Hata",
-        description: error?.message || "Kullanıcı silinemedi",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const resetPasswordMutation = useMutation({
-    mutationFn: async ({ id, newPassword }: { id: number; newPassword: string }) => {
-      const res = await apiRequest("PATCH", `/api/admin/users/${id}/password`, { newPassword });
-      return res.json();
-    },
-    onSuccess: () => {
-      toast({ title: "Şifre güncellendi" });
-      setShowResetPasswordDialog(false);
-      setSelectedUserForReset(null);
-      setNewPassword("");
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Hata",
-        description: error?.message || "Şifre güncellenemedi",
         variant: "destructive",
       });
     },
@@ -157,15 +75,7 @@ export default function AdminPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Eğer yeni CC e-posta alanında yazılmış ama eklenmemiş bir e-posta varsa, otomatik ekle
-    let finalCcEmails = [...ccEmails];
-    const pendingEmail = newCcEmail.trim();
-    if (pendingEmail && pendingEmail.includes("@") && !ccEmails.includes(pendingEmail)) {
-      finalCcEmails.push(pendingEmail);
-      setCcEmails(finalCcEmails);
-      setNewCcEmail("");
-    }
-    updateMutation.mutate({ ownerEmail, ccEmails: finalCcEmails, globalEmailApiKey: globalEmailApiKey || undefined });
+    updateMutation.mutate({ ownerEmail, ccEmails });
   };
 
   if (isLoading) {
@@ -195,21 +105,6 @@ export default function AdminPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="globalEmailApiKey">Resend API Anahtarı</Label>
-              <Input
-                id="globalEmailApiKey"
-                type="password"
-                data-testid="input-global-email-api-key"
-                placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxx"
-                value={globalEmailApiKey}
-                onChange={(e) => setGlobalEmailApiKey(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                E-posta göndermek için kullanılacak Resend API anahtarı. Tüm kullanıcılar bu anahtarı kullanacak.
-              </p>
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="ownerEmail">İş Sahibi E-posta</Label>
               <Input
@@ -306,7 +201,7 @@ export default function AdminPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Mail className="h-5 w-5" />
+            <Users className="h-5 w-5" />
             <CardTitle>E-posta Gönderim Özeti</CardTitle>
           </div>
         </CardHeader>
@@ -334,232 +229,6 @@ export default function AdminPage() {
           </div>
         </CardContent>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              <CardTitle>Kullanıcı Yönetimi</CardTitle>
-            </div>
-            <Dialog open={showNewUserDialog} onOpenChange={setShowNewUserDialog}>
-              <DialogTrigger asChild>
-                <Button data-testid="button-add-user">
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Yeni Kullanıcı
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Yeni Kullanıcı Ekle</DialogTitle>
-                </DialogHeader>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (newUser.password.length < 6) {
-                      toast({ title: "Hata", description: "Şifre en az 6 karakter olmalı", variant: "destructive" });
-                      return;
-                    }
-                    createUserMutation.mutate(newUser);
-                  }}
-                  className="space-y-4"
-                >
-                  <div className="space-y-2">
-                    <Label>Firma Adı *</Label>
-                    <Input
-                      data-testid="input-new-user-company"
-                      value={newUser.companyName}
-                      onChange={(e) => setNewUser({ ...newUser, companyName: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Kullanıcı Adı *</Label>
-                    <Input
-                      data-testid="input-new-user-username"
-                      value={newUser.username}
-                      onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Şifre *</Label>
-                    <Input
-                      type="password"
-                      data-testid="input-new-user-password"
-                      value={newUser.password}
-                      onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Ad Soyad</Label>
-                    <Input
-                      data-testid="input-new-user-fullname"
-                      value={newUser.fullName}
-                      onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>E-posta</Label>
-                    <Input
-                      type="email"
-                      data-testid="input-new-user-email"
-                      value={newUser.email}
-                      onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                    />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="isAdmin"
-                      data-testid="checkbox-new-user-admin"
-                      checked={newUser.isAdmin}
-                      onCheckedChange={(checked) => setNewUser({ ...newUser, isAdmin: checked === true })}
-                    />
-                    <Label htmlFor="isAdmin">Admin yetkisi ver</Label>
-                  </div>
-                  <div className="flex justify-end gap-2 pt-2">
-                    <Button type="button" variant="outline" onClick={() => setShowNewUserDialog(false)}>
-                      İptal
-                    </Button>
-                    <Button type="submit" disabled={createUserMutation.isPending} data-testid="button-create-user">
-                      {createUserMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                      Oluştur
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-          <CardDescription>Sisteme erişebilecek kullanıcıları yönetin</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {usersLoading ? (
-            <div className="flex items-center justify-center h-32">
-              <Loader2 className="h-6 w-6 animate-spin" />
-            </div>
-          ) : users && users.length > 0 ? (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Kullanıcı Adı</TableHead>
-                    <TableHead>Firma</TableHead>
-                    <TableHead>E-posta</TableHead>
-                    <TableHead>Yetki</TableHead>
-                    <TableHead className="text-right">İşlemler</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
-                      <TableCell className="font-medium">{user.username}</TableCell>
-                      <TableCell>{user.companyName}</TableCell>
-                      <TableCell>{user.email || "-"}</TableCell>
-                      <TableCell>
-                        {user.isAdmin ? (
-                          <Badge variant="default">Admin</Badge>
-                        ) : (
-                          <Badge variant="secondary">Kullanıcı</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            data-testid={`button-reset-password-${user.id}`}
-                            onClick={() => {
-                              setSelectedUserForReset(user);
-                              setNewPassword("");
-                              setShowResetPasswordDialog(true);
-                            }}
-                            title="Şifre Sıfırla"
-                          >
-                            <Key className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            data-testid={`button-delete-user-${user.id}`}
-                            onClick={() => {
-                              if (confirm(`${user.username} kullanıcısını silmek istediğinize emin misiniz?`)) {
-                                deleteUserMutation.mutate(user.id);
-                              }
-                            }}
-                            disabled={deleteUserMutation.isPending}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Henüz kullanıcı yok</p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Dialog open={showResetPasswordDialog} onOpenChange={setShowResetPasswordDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Şifre Sıfırla</DialogTitle>
-          </DialogHeader>
-          {selectedUserForReset && (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (newPassword.length < 6) {
-                  toast({ title: "Hata", description: "Şifre en az 6 karakter olmalı", variant: "destructive" });
-                  return;
-                }
-                resetPasswordMutation.mutate({ id: selectedUserForReset.id, newPassword });
-              }}
-              className="space-y-4"
-            >
-              <p className="text-sm text-muted-foreground">
-                <strong>{selectedUserForReset.username}</strong> kullanıcısı için yeni şifre belirleyin.
-              </p>
-              <div className="space-y-2">
-                <Label>Yeni Şifre *</Label>
-                <Input
-                  type="password"
-                  data-testid="input-new-password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="En az 6 karakter"
-                  required
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => {
-                    setShowResetPasswordDialog(false);
-                    setSelectedUserForReset(null);
-                    setNewPassword("");
-                  }}
-                >
-                  İptal
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={resetPasswordMutation.isPending}
-                  data-testid="button-confirm-reset-password"
-                >
-                  {resetPasswordMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Şifreyi Güncelle
-                </Button>
-              </div>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

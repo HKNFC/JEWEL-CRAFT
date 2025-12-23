@@ -43,9 +43,6 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(data: InsertUser & { passwordHash: string }): Promise<User>;
   updateUser(id: number, data: Partial<InsertUser & { passwordHash?: string }>): Promise<User | undefined>;
-  updateUserPassword(id: number, passwordHash: string): Promise<boolean>;
-  getAllUsers(): Promise<User[]>;
-  deleteUser(id: number): Promise<boolean>;
 
   getManufacturers(): Promise<Manufacturer[]>;
   getManufacturer(id: number): Promise<Manufacturer | undefined>;
@@ -65,11 +62,11 @@ export interface IStorage {
   updateGemstonePriceList(id: number, data: Partial<InsertGemstonePriceList>): Promise<GemstonePriceList | undefined>;
   deleteGemstonePriceList(id: number): Promise<boolean>;
 
-  getAnalysisRecords(userId: number): Promise<AnalysisRecordWithRelations[]>;
-  getAnalysisRecord(id: number, userId: number): Promise<AnalysisRecordWithRelations | undefined>;
-  createAnalysisRecord(data: InsertAnalysisRecord & { userId: number }, stones: Omit<InsertAnalysisStone, 'analysisRecordId'>[]): Promise<AnalysisRecord>;
-  updateAnalysisRecord(id: number, userId: number, data: Partial<InsertAnalysisRecord>, stones?: Omit<InsertAnalysisStone, 'analysisRecordId'>[]): Promise<AnalysisRecord | undefined>;
-  deleteAnalysisRecord(id: number, userId: number): Promise<boolean>;
+  getAnalysisRecords(): Promise<AnalysisRecordWithRelations[]>;
+  getAnalysisRecord(id: number): Promise<AnalysisRecordWithRelations | undefined>;
+  createAnalysisRecord(data: InsertAnalysisRecord, stones: Omit<InsertAnalysisStone, 'analysisRecordId'>[]): Promise<AnalysisRecord>;
+  updateAnalysisRecord(id: number, data: Partial<InsertAnalysisRecord>, stones?: Omit<InsertAnalysisStone, 'analysisRecordId'>[]): Promise<AnalysisRecord | undefined>;
+  deleteAnalysisRecord(id: number): Promise<boolean>;
 
   getLatestExchangeRate(): Promise<ExchangeRate | undefined>;
   createExchangeRate(data: InsertExchangeRate): Promise<ExchangeRate>;
@@ -80,13 +77,13 @@ export interface IStorage {
   clearRapaportPrices(): Promise<void>;
   findRapaportPrice(shape: string, carat: number, color: string, clarity: string): Promise<RapaportPrice | undefined>;
 
-  getBatches(userId: number): Promise<BatchWithRelations[]>;
-  getBatchesByManufacturer(userId: number, manufacturerId: number): Promise<Batch[]>;
-  getBatch(id: number, userId: number): Promise<BatchWithRelations | undefined>;
-  getBatchWithFullDetails(id: number, userId: number): Promise<{ batch: BatchWithRelations; records: AnalysisRecordWithRelations[] } | undefined>;
-  createBatch(userId: number, manufacturerId: number): Promise<Batch>;
-  deleteBatch(id: number, userId: number): Promise<boolean>;
-  getNextBatchNumber(userId: number, manufacturerId: number): Promise<number>;
+  getBatches(): Promise<BatchWithRelations[]>;
+  getBatchesByManufacturer(manufacturerId: number): Promise<Batch[]>;
+  getBatch(id: number): Promise<BatchWithRelations | undefined>;
+  getBatchWithFullDetails(id: number): Promise<{ batch: BatchWithRelations; records: AnalysisRecordWithRelations[] } | undefined>;
+  createBatch(manufacturerId: number): Promise<Batch>;
+  deleteBatch(id: number): Promise<boolean>;
+  getNextBatchNumber(manufacturerId: number): Promise<number>;
 
   getRapaportDiscountRates(): Promise<RapaportDiscountRate[]>;
   getRapaportDiscountRate(id: number): Promise<RapaportDiscountRate | undefined>;
@@ -118,20 +115,6 @@ export class DatabaseStorage implements IStorage {
   async updateUser(id: number, data: Partial<InsertUser & { passwordHash?: string }>): Promise<User | undefined> {
     const [user] = await db.update(users).set(data).where(eq(users.id, id)).returning();
     return user || undefined;
-  }
-
-  async getAllUsers(): Promise<User[]> {
-    return db.select().from(users);
-  }
-
-  async updateUserPassword(id: number, passwordHash: string): Promise<boolean> {
-    await db.update(users).set({ passwordHash }).where(eq(users.id, id));
-    return true;
-  }
-
-  async deleteUser(id: number): Promise<boolean> {
-    const result = await db.delete(users).where(eq(users.id, id));
-    return true;
   }
 
   async getManufacturers(): Promise<Manufacturer[]> {
@@ -206,45 +189,51 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
-  async getAnalysisRecords(userId: number): Promise<AnalysisRecordWithRelations[]> {
-    const records = await db.select().from(analysisRecords).where(eq(analysisRecords.userId, userId));
+  async getAnalysisRecords(): Promise<AnalysisRecordWithRelations[]> {
+    const records = await db.select().from(analysisRecords);
     const result: AnalysisRecordWithRelations[] = [];
     
     for (const record of records) {
       const manufacturer = record.manufacturerId 
         ? await this.getManufacturer(record.manufacturerId) 
         : null;
-      const batch = record.batchId
-        ? (await db.select().from(batches).where(eq(batches.id, record.batchId)))[0] || null
-        : null;
       const stones = await db.select().from(analysisStones).where(eq(analysisStones.analysisRecordId, record.id));
-      result.push({ ...record, manufacturer, batch, stones });
+      result.push({ ...record, manufacturer, stones });
     }
     
     return result;
   }
 
-  async getAnalysisRecord(id: number, userId: number): Promise<AnalysisRecordWithRelations | undefined> {
-    const [record] = await db.select().from(analysisRecords).where(
-      and(eq(analysisRecords.id, id), eq(analysisRecords.userId, userId))
-    );
+  async getAnalysisRecord(id: number): Promise<AnalysisRecordWithRelations | undefined> {
+    const [record] = await db.select().from(analysisRecords).where(eq(analysisRecords.id, id));
     if (!record) return undefined;
 
     const manufacturer = record.manufacturerId 
       ? await this.getManufacturer(record.manufacturerId) 
       : null;
-    const batch = record.batchId
-      ? (await db.select().from(batches).where(eq(batches.id, record.batchId)))[0] || null
-      : null;
     const stones = await db.select().from(analysisStones).where(eq(analysisStones.analysisRecordId, record.id));
     
-    return { ...record, manufacturer, batch, stones };
+    return { ...record, manufacturer, stones };
   }
 
-  async createAnalysisRecord(data: InsertAnalysisRecord & { userId: number }, stonesData: Omit<InsertAnalysisStone, 'analysisRecordId'>[]): Promise<AnalysisRecord> {
-    // Frontend'den gelen totalCost değerini kullan (doğru hesaplanmış değer)
+  async createAnalysisRecord(data: InsertAnalysisRecord, stonesData: Omit<InsertAnalysisStone, 'analysisRecordId'>[]): Promise<AnalysisRecord> {
+    let totalStoneCost = 0;
+    for (const stone of stonesData) {
+      totalStoneCost += parseFloat(stone.totalStoneCost || "0");
+    }
+
+    const goldLabor = parseFloat(data.goldLaborCost || "0");
+    const polish = parseFloat(data.polishAmount || "0");
+    const certificate = parseFloat(data.certificateAmount || "0");
+    const fire = parseFloat(data.firePercentage || "0");
+    
+    const baseTotal = goldLabor + polish + certificate + totalStoneCost;
+    const fireAmount = baseTotal * (fire / 100);
+    const totalCost = baseTotal + fireAmount;
+
     const [record] = await db.insert(analysisRecords).values({
       ...data,
+      totalCost: totalCost.toFixed(2),
     }).returning();
 
     if (stonesData.length > 0) {
@@ -259,15 +248,13 @@ export class DatabaseStorage implements IStorage {
     return record;
   }
 
-  async updateAnalysisRecord(id: number, userId: number, data: Partial<InsertAnalysisRecord>, stonesData?: Omit<InsertAnalysisStone, 'analysisRecordId'>[]): Promise<AnalysisRecord | undefined> {
-    const existing = await this.getAnalysisRecord(id, userId);
+  async updateAnalysisRecord(id: number, data: Partial<InsertAnalysisRecord>, stonesData?: Omit<InsertAnalysisStone, 'analysisRecordId'>[]): Promise<AnalysisRecord | undefined> {
+    const existing = await this.getAnalysisRecord(id);
     if (!existing) return undefined;
 
     const mergedData = {
       manufacturerId: data.manufacturerId !== undefined ? data.manufacturerId : existing.manufacturerId,
-      batchId: data.batchId !== undefined ? data.batchId : existing.batchId,
       productCode: data.productCode !== undefined ? data.productCode : existing.productCode,
-      productType: data.productType !== undefined ? data.productType : existing.productType,
       totalGrams: data.totalGrams !== undefined ? data.totalGrams : existing.totalGrams,
       goldPurity: data.goldPurity !== undefined ? data.goldPurity : existing.goldPurity,
       goldLaborCost: data.goldLaborCost !== undefined ? data.goldLaborCost : existing.goldLaborCost,
@@ -275,15 +262,6 @@ export class DatabaseStorage implements IStorage {
       firePercentage: data.firePercentage !== undefined ? data.firePercentage : existing.firePercentage,
       polishAmount: data.polishAmount !== undefined ? data.polishAmount : existing.polishAmount,
       certificateAmount: data.certificateAmount !== undefined ? data.certificateAmount : existing.certificateAmount,
-      manufacturerPrice: data.manufacturerPrice !== undefined ? data.manufacturerPrice : existing.manufacturerPrice,
-      rawMaterialCost: data.rawMaterialCost !== undefined ? data.rawMaterialCost : existing.rawMaterialCost,
-      laborCost: data.laborCost !== undefined ? data.laborCost : existing.laborCost,
-      totalSettingCost: data.totalSettingCost !== undefined ? data.totalSettingCost : existing.totalSettingCost,
-      totalStoneCost: data.totalStoneCost !== undefined ? data.totalStoneCost : existing.totalStoneCost,
-      totalCost: data.totalCost !== undefined ? data.totalCost : existing.totalCost,
-      profitLoss: data.profitLoss !== undefined ? data.profitLoss : existing.profitLoss,
-      goldPriceUsed: data.goldPriceUsed !== undefined ? data.goldPriceUsed : existing.goldPriceUsed,
-      usdTryUsed: data.usdTryUsed !== undefined ? data.usdTryUsed : existing.usdTryUsed,
     };
 
     if (stonesData !== undefined) {
@@ -299,27 +277,39 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Frontend'den gelen totalCost değerini kullan (doğru hesaplanmış değer)
+    const existingStones = stonesData !== undefined 
+      ? stonesData 
+      : existing.stones || [];
+    
+    let totalStoneCost = 0;
+    for (const stone of existingStones) {
+      totalStoneCost += parseFloat(stone.totalStoneCost || "0");
+    }
+
+    const goldLabor = parseFloat(mergedData.goldLaborCost || "0");
+    const polish = parseFloat(mergedData.polishAmount || "0");
+    const certificate = parseFloat(mergedData.certificateAmount || "0");
+    const fire = parseFloat(mergedData.firePercentage || "0");
+    
+    const baseTotal = goldLabor + polish + certificate + totalStoneCost;
+    const fireAmount = baseTotal * (fire / 100);
+    const totalCost = baseTotal + fireAmount;
+
     const [record] = await db.update(analysisRecords).set({
       ...mergedData,
-    }).where(
-      and(eq(analysisRecords.id, id), eq(analysisRecords.userId, userId))
-    ).returning();
+      totalCost: totalCost.toFixed(2),
+    }).where(eq(analysisRecords.id, id)).returning();
 
     return record || undefined;
   }
 
-  async deleteAnalysisRecord(id: number, userId: number): Promise<boolean> {
-    const result = await db.delete(analysisRecords).where(
-      and(eq(analysisRecords.id, id), eq(analysisRecords.userId, userId))
-    ).returning();
+  async deleteAnalysisRecord(id: number): Promise<boolean> {
+    const result = await db.delete(analysisRecords).where(eq(analysisRecords.id, id)).returning();
     return result.length > 0;
   }
 
   async getLatestExchangeRate(): Promise<ExchangeRate | undefined> {
-    const [rate] = await db.select().from(exchangeRates)
-      .orderBy(desc(exchangeRates.updatedAt))
-      .limit(1);
+    const [rate] = await db.select().from(exchangeRates).orderBy(desc(exchangeRates.updatedAt)).limit(1);
     return rate || undefined;
   }
 
@@ -361,10 +351,8 @@ export class DatabaseStorage implements IStorage {
     return price || undefined;
   }
 
-  async getBatches(userId: number): Promise<BatchWithRelations[]> {
-    const allBatches = await db.select().from(batches)
-      .where(eq(batches.userId, userId))
-      .orderBy(desc(batches.createdAt));
+  async getBatches(): Promise<BatchWithRelations[]> {
+    const allBatches = await db.select().from(batches).orderBy(desc(batches.createdAt));
     const result: BatchWithRelations[] = [];
     
     for (const batch of allBatches) {
@@ -376,16 +364,14 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async getBatchesByManufacturer(userId: number, manufacturerId: number): Promise<Batch[]> {
+  async getBatchesByManufacturer(manufacturerId: number): Promise<Batch[]> {
     return db.select().from(batches)
-      .where(and(eq(batches.userId, userId), eq(batches.manufacturerId, manufacturerId)))
+      .where(eq(batches.manufacturerId, manufacturerId))
       .orderBy(desc(batches.batchNumber));
   }
 
-  async getBatch(id: number, userId: number): Promise<BatchWithRelations | undefined> {
-    const [batch] = await db.select().from(batches).where(
-      and(eq(batches.id, id), eq(batches.userId, userId))
-    );
+  async getBatch(id: number): Promise<BatchWithRelations | undefined> {
+    const [batch] = await db.select().from(batches).where(eq(batches.id, id));
     if (!batch) return undefined;
 
     const manufacturer = await this.getManufacturer(batch.manufacturerId);
@@ -394,10 +380,8 @@ export class DatabaseStorage implements IStorage {
     return { ...batch, manufacturer, analysisRecords: records };
   }
 
-  async getBatchWithFullDetails(id: number, userId: number): Promise<{ batch: BatchWithRelations; records: AnalysisRecordWithRelations[] } | undefined> {
-    const [batch] = await db.select().from(batches).where(
-      and(eq(batches.id, id), eq(batches.userId, userId))
-    );
+  async getBatchWithFullDetails(id: number): Promise<{ batch: BatchWithRelations; records: AnalysisRecordWithRelations[] } | undefined> {
+    const [batch] = await db.select().from(batches).where(eq(batches.id, id));
     if (!batch) return undefined;
 
     const manufacturer = await this.getManufacturer(batch.manufacturerId);
@@ -415,9 +399,9 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getNextBatchNumber(userId: number, manufacturerId: number): Promise<number> {
+  async getNextBatchNumber(manufacturerId: number): Promise<number> {
     const existingBatches = await db.select().from(batches)
-      .where(and(eq(batches.userId, userId), eq(batches.manufacturerId, manufacturerId)))
+      .where(eq(batches.manufacturerId, manufacturerId))
       .orderBy(desc(batches.batchNumber))
       .limit(1);
     
@@ -427,20 +411,17 @@ export class DatabaseStorage implements IStorage {
     return existingBatches[0].batchNumber + 1;
   }
 
-  async createBatch(userId: number, manufacturerId: number): Promise<Batch> {
-    const nextNumber = await this.getNextBatchNumber(userId, manufacturerId);
+  async createBatch(manufacturerId: number): Promise<Batch> {
+    const nextNumber = await this.getNextBatchNumber(manufacturerId);
     const [batch] = await db.insert(batches).values({
-      userId,
       manufacturerId,
       batchNumber: nextNumber,
     }).returning();
     return batch;
   }
 
-  async deleteBatch(id: number, userId: number): Promise<boolean> {
-    const result = await db.delete(batches).where(
-      and(eq(batches.id, id), eq(batches.userId, userId))
-    ).returning();
+  async deleteBatch(id: number): Promise<boolean> {
+    const result = await db.delete(batches).where(eq(batches.id, id)).returning();
     return result.length > 0;
   }
 
@@ -479,17 +460,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAdminSettings(): Promise<AdminSettings | undefined> {
-    const [settings] = await db.select().from(adminSettings);
+    const [settings] = await db.select().from(adminSettings).limit(1);
     return settings || undefined;
   }
 
   async updateAdminSettings(data: InsertAdminSettings): Promise<AdminSettings> {
     const existing = await this.getAdminSettings();
     if (existing) {
-      const [updated] = await db.update(adminSettings).set({
-        ...data,
-        updatedAt: new Date(),
-      }).where(eq(adminSettings.id, existing.id)).returning();
+      const [updated] = await db.update(adminSettings)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(adminSettings.id, existing.id))
+        .returning();
       return updated;
     } else {
       const [created] = await db.insert(adminSettings).values(data).returning();

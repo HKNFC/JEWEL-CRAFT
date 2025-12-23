@@ -3,12 +3,11 @@ import session from "express-session";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import connectPgSimple from "connect-pg-simple";
-import { pool } from "./db";
+import MemoryStore from "memorystore";
 
 const app = express();
 const httpServer = createServer(app);
-const PgSession = connectPgSimple(session);
+const MemoryStoreSession = MemoryStore(session);
 
 app.set("trust proxy", 1);
 
@@ -40,16 +39,14 @@ app.use(
     secret: process.env.SESSION_SECRET || "jewelry-cost-analysis-secret-key",
     resave: false,
     saveUninitialized: false,
-    store: new PgSession({
-      pool: pool,
-      tableName: "user_sessions",
-      createTableIfMissing: true,
+    store: new MemoryStoreSession({
+      checkPeriod: 86400000,
     }),
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      secure: "auto",
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      sameSite: "none",
     },
     proxy: true,
   })

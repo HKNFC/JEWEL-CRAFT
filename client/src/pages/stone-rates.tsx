@@ -8,7 +8,6 @@ import { z } from "zod";
 import { Plus, Pencil, Trash2, ListOrdered, Gem, Diamond } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -53,7 +52,6 @@ const stoneRateFormSchema = z.object({
   maxCarat: z.string().min(1, "Maksimum karat gerekli"),
   pricePerStone: z.string().min(1, "Fiyat gerekli"),
   stoneCategory: z.string(),
-  pricingType: z.string().default("perPiece"), // "perPiece" = Adet Fiyatı, "perCarat" = Karat Fiyatı
 });
 
 type StoneRateFormValues = z.infer<typeof stoneRateFormSchema>;
@@ -75,7 +73,6 @@ export default function StoneRatesPage() {
       maxCarat: "",
       pricePerStone: "",
       stoneCategory: "diamond",
-      pricingType: "perPiece",
     },
   });
 
@@ -135,14 +132,13 @@ export default function StoneRatesPage() {
       maxCarat: rate.maxCarat,
       pricePerStone: rate.pricePerStone,
       stoneCategory: rate.stoneCategory || "diamond",
-      pricingType: rate.pricingType || "perPiece",
     });
     setDialogOpen(true);
   };
 
   const openNewDialog = (category: "diamond" | "colored") => {
     setEditingId(null);
-    form.reset({ minCarat: "", maxCarat: "", pricePerStone: "", stoneCategory: category, pricingType: "perPiece" });
+    form.reset({ minCarat: "", maxCarat: "", pricePerStone: "", stoneCategory: category });
     setDialogOpen(true);
   };
 
@@ -156,8 +152,7 @@ export default function StoneRatesPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Karat Aralığı</TableHead>
-              <TableHead>Fiyat Tipi</TableHead>
-              <TableHead>Fiyat</TableHead>
+              <TableHead>Taş Başı Fiyat</TableHead>
               <TableHead className="text-right">İşlemler</TableHead>
             </TableRow>
           </TableHeader>
@@ -167,11 +162,8 @@ export default function StoneRatesPage() {
                 <TableCell className="font-medium font-mono">
                   {rate.minCarat} - {rate.maxCarat} ct
                 </TableCell>
-                <TableCell>
-                  {rate.pricingType === "perCarat" ? "Karat Fiyatı" : "Adet Fiyatı"}
-                </TableCell>
                 <TableCell className="font-mono">
-                  ${parseFloat(rate.pricePerStone).toFixed(2)}{rate.pricingType === "perCarat" ? "/ct" : "/adet"}
+                  ${parseFloat(rate.pricePerStone).toFixed(2)}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
@@ -289,33 +281,10 @@ export default function StoneRatesPage() {
               </div>
               <FormField
                 control={form.control}
-                name="pricingType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fiyat Tipi *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-pricing-type">
-                          <SelectValue placeholder="Fiyat tipi seçin" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="perPiece">Adet Fiyatı</SelectItem>
-                        <SelectItem value="perCarat">Karat Fiyatı</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
                 name="pricePerStone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>
-                      {form.watch("pricingType") === "perCarat" ? "Karat Fiyatı ($)" : "Adet Fiyatı ($)"} *
-                    </FormLabel>
+                    <FormLabel>Taş Başı Fiyat ($) *</FormLabel>
                     <FormControl>
                       <Input 
                         type="number"

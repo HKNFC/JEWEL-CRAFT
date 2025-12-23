@@ -23,23 +23,12 @@ const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
-const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: "Oturum açmanız gerekiyor" });
-  }
-  const user = await storage.getUser(req.session.userId);
-  if (!user?.isAdmin) {
-    return res.status(403).json({ error: "Bu işlem için admin yetkisi gerekiyor" });
-  }
-  next();
-};
-
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
 
-  app.post("/api/admin/users", requireAdmin, async (req, res) => {
+  app.post("/api/auth/register", async (req, res) => {
     try {
       const registerSchema = insertUserSchema.extend({
         password: z.string().min(6, "Şifre en az 6 karakter olmalı"),
@@ -58,55 +47,13 @@ export async function registerRoutes(
       const passwordHash = await bcrypt.hash(password, 10);
       const user = await storage.createUser({ ...userData, passwordHash });
       
+      req.session.userId = user.id;
+      
       const { passwordHash: _, ...safeUser } = user;
       res.status(201).json(safeUser);
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: "Kullanıcı oluşturulurken bir hata oluştu" });
-    }
-  });
-
-  app.get("/api/admin/users", requireAdmin, async (req, res) => {
-    try {
-      const users = await storage.getAllUsers();
-      const safeUsers = users.map(({ passwordHash, ...u }) => u);
-      res.json(safeUsers);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Kullanıcılar alınırken bir hata oluştu" });
-    }
-  });
-
-  app.delete("/api/admin/users/:id", requireAdmin, async (req, res) => {
-    try {
-      const userId = parseInt(req.params.id);
-      if (userId === req.session.userId) {
-        return res.status(400).json({ error: "Kendi hesabınızı silemezsiniz" });
-      }
-      await storage.deleteUser(userId);
-      res.json({ success: true });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Kullanıcı silinirken bir hata oluştu" });
-    }
-  });
-
-  app.patch("/api/admin/users/:id/password", requireAdmin, async (req, res) => {
-    try {
-      const userId = parseInt(req.params.id);
-      const { newPassword } = req.body;
-      
-      if (!newPassword || newPassword.length < 6) {
-        return res.status(400).json({ error: "Şifre en az 6 karakter olmalı" });
-      }
-      
-      const passwordHash = await bcrypt.hash(newPassword, 10);
-      await storage.updateUserPassword(userId, passwordHash);
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Şifre güncellenirken bir hata oluştu" });
+      res.status(500).json({ error: "Kayıt sırasında bir hata oluştu" });
     }
   });
 
@@ -227,7 +174,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/manufacturers", requireAuth, async (req, res) => {
+  app.get("/api/manufacturers", async (req, res) => {
     try {
       const manufacturers = await storage.getManufacturers();
       res.json(manufacturers);
@@ -236,7 +183,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/manufacturers/:id", requireAuth, async (req, res) => {
+  app.get("/api/manufacturers/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const manufacturer = await storage.getManufacturer(id);
@@ -249,7 +196,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/manufacturers", requireAuth, async (req, res) => {
+  app.post("/api/manufacturers", async (req, res) => {
     try {
       const parsed = insertManufacturerSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -262,7 +209,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/manufacturers/:id", requireAuth, async (req, res) => {
+  app.patch("/api/manufacturers/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const manufacturer = await storage.updateManufacturer(id, req.body);
@@ -275,7 +222,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/manufacturers/:id", requireAuth, async (req, res) => {
+  app.delete("/api/manufacturers/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const deleted = await storage.deleteManufacturer(id);
@@ -288,7 +235,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/stone-setting-rates", requireAuth, async (req, res) => {
+  app.get("/api/stone-setting-rates", async (req, res) => {
     try {
       const rates = await storage.getStoneSettingRates();
       res.json(rates);
@@ -297,7 +244,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/stone-setting-rates/:id", requireAuth, async (req, res) => {
+  app.get("/api/stone-setting-rates/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const rate = await storage.getStoneSettingRate(id);
@@ -310,7 +257,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/stone-setting-rates", requireAuth, async (req, res) => {
+  app.post("/api/stone-setting-rates", async (req, res) => {
     try {
       const parsed = insertStoneSettingRateSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -323,7 +270,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/stone-setting-rates/:id", requireAuth, async (req, res) => {
+  app.patch("/api/stone-setting-rates/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const rate = await storage.updateStoneSettingRate(id, req.body);
@@ -336,7 +283,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/stone-setting-rates/:id", requireAuth, async (req, res) => {
+  app.delete("/api/stone-setting-rates/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const deleted = await storage.deleteStoneSettingRate(id);
@@ -349,7 +296,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/gemstone-prices", requireAuth, async (req, res) => {
+  app.get("/api/gemstone-prices", async (req, res) => {
     try {
       const prices = await storage.getGemstonePriceLists();
       res.json(prices);
@@ -358,7 +305,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/gemstone-prices/:id", requireAuth, async (req, res) => {
+  app.get("/api/gemstone-prices/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const price = await storage.getGemstonePriceList(id);
@@ -371,7 +318,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/gemstone-prices", requireAuth, async (req, res) => {
+  app.post("/api/gemstone-prices", async (req, res) => {
     try {
       const parsed = insertGemstonePriceListSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -384,7 +331,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/gemstone-prices/:id", requireAuth, async (req, res) => {
+  app.patch("/api/gemstone-prices/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const price = await storage.updateGemstonePriceList(id, req.body);
@@ -397,7 +344,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/gemstone-prices/:id", requireAuth, async (req, res) => {
+  app.delete("/api/gemstone-prices/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const deleted = await storage.deleteGemstonePriceList(id);
@@ -410,19 +357,19 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/analysis-records", requireAuth, async (req, res) => {
+  app.get("/api/analysis-records", async (req, res) => {
     try {
-      const records = await storage.getAnalysisRecords(req.session.userId!);
+      const records = await storage.getAnalysisRecords();
       res.json(records);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch analysis records" });
     }
   });
 
-  app.get("/api/analysis-records/:id", requireAuth, async (req, res) => {
+  app.get("/api/analysis-records/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const record = await storage.getAnalysisRecord(id, req.session.userId!);
+      const record = await storage.getAnalysisRecord(id);
       if (!record) {
         return res.status(404).json({ error: "Record not found" });
       }
@@ -432,13 +379,12 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/analysis-records", requireAuth, async (req, res) => {
+  app.post("/api/analysis-records", async (req, res) => {
     try {
       const { stones, ...recordData } = req.body;
       const toNullIfEmpty = (val: any) => (val === "" || val === undefined) ? null : val;
       const parsed = insertAnalysisRecordSchema.safeParse({
         ...recordData,
-        userId: req.session.userId!,
         manufacturerId: recordData.manufacturerId ? parseInt(recordData.manufacturerId) : null,
         goldPurity: recordData.goldPurity || "24",
         goldLaborCost: toNullIfEmpty(recordData.goldLaborCost),
@@ -479,7 +425,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/analysis-records/:id", requireAuth, async (req, res) => {
+  app.patch("/api/analysis-records/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { stones, ...recordData } = req.body;
@@ -497,10 +443,9 @@ export async function registerRoutes(
         rapaportPrice: stone.rapaportPrice?.toString() || null,
         discountPercent: stone.discountPercent?.toString() || null,
       })) : undefined;
-      const record = await storage.updateAnalysisRecord(id, req.session.userId!, {
+      const record = await storage.updateAnalysisRecord(id, {
         ...recordData,
         manufacturerId: recordData.manufacturerId ? parseInt(recordData.manufacturerId) : null,
-        batchId: recordData.batchId ? parseInt(recordData.batchId) : null,
         goldPurity: recordData.goldPurity || "24",
         goldLaborCost: toNullIfEmpty(recordData.goldLaborCost),
         firePercentage: toNullIfEmpty(recordData.firePercentage),
@@ -526,10 +471,10 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/analysis-records/:id", requireAuth, async (req, res) => {
+  app.delete("/api/analysis-records/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteAnalysisRecord(id, req.session.userId!);
+      const deleted = await storage.deleteAnalysisRecord(id);
       if (!deleted) {
         return res.status(404).json({ error: "Record not found" });
       }
@@ -539,7 +484,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/exchange-rates/latest", requireAuth, async (req, res) => {
+  app.get("/api/exchange-rates/latest", async (req, res) => {
     try {
       const rate = await storage.getLatestExchangeRate();
       res.json(rate || null);
@@ -548,7 +493,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/exchange-rates", requireAuth, async (req, res) => {
+  app.post("/api/exchange-rates", async (req, res) => {
     try {
       const parsed = insertExchangeRateSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -561,7 +506,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/exchange-rates/fetch", requireAuth, async (req, res) => {
+  app.post("/api/exchange-rates/fetch", async (req, res) => {
     try {
       const apiKey = process.env.GOLDAPI_KEY;
       if (!apiKey) {
@@ -581,7 +526,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/rapaport-prices", requireAuth, async (req, res) => {
+  app.get("/api/rapaport-prices", async (req, res) => {
     try {
       const prices = await storage.getRapaportPrices();
       res.json(prices);
@@ -590,7 +535,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/rapaport-prices", requireAuth, async (req, res) => {
+  app.post("/api/rapaport-prices", async (req, res) => {
     try {
       const { shape, lowCarat, highCarat, color, clarity, price } = req.body;
       const priceData = {
@@ -609,7 +554,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/rapaport-prices/upload", requireAuth, async (req, res) => {
+  app.post("/api/rapaport-prices/upload", async (req, res) => {
     try {
       const { prices, clearExisting } = req.body;
       if (clearExisting) {
@@ -623,7 +568,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/rapaport-prices", requireAuth, async (req, res) => {
+  app.delete("/api/rapaport-prices", async (req, res) => {
     try {
       await storage.clearRapaportPrices();
       res.status(204).send();
@@ -632,7 +577,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/rapaport-prices/lookup", requireAuth, async (req, res) => {
+  app.get("/api/rapaport-prices/lookup", async (req, res) => {
     try {
       const { shape, carat, color, clarity } = req.query;
       if (!shape || !carat || !color || !clarity) {
@@ -650,39 +595,39 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/batches", requireAuth, async (req, res) => {
+  app.get("/api/batches", async (req, res) => {
     try {
-      const batches = await storage.getBatches(req.session.userId!);
+      const batches = await storage.getBatches();
       res.json(batches);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch batches" });
     }
   });
 
-  app.get("/api/batches/manufacturer/:manufacturerId", requireAuth, async (req, res) => {
+  app.get("/api/batches/manufacturer/:manufacturerId", async (req, res) => {
     try {
       const manufacturerId = parseInt(req.params.manufacturerId);
-      const batches = await storage.getBatchesByManufacturer(req.session.userId!, manufacturerId);
+      const batches = await storage.getBatchesByManufacturer(manufacturerId);
       res.json(batches);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch batches for manufacturer" });
     }
   });
 
-  app.get("/api/batches/next-number/:manufacturerId", requireAuth, async (req, res) => {
+  app.get("/api/batches/next-number/:manufacturerId", async (req, res) => {
     try {
       const manufacturerId = parseInt(req.params.manufacturerId);
-      const nextNumber = await storage.getNextBatchNumber(req.session.userId!, manufacturerId);
+      const nextNumber = await storage.getNextBatchNumber(manufacturerId);
       res.json({ nextNumber });
     } catch (error) {
       res.status(500).json({ error: "Failed to get next batch number" });
     }
   });
 
-  app.get("/api/batches/:id", requireAuth, async (req, res) => {
+  app.get("/api/batches/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const batch = await storage.getBatch(id, req.session.userId!);
+      const batch = await storage.getBatch(id);
       if (!batch) {
         return res.status(404).json({ error: "Batch not found" });
       }
@@ -692,10 +637,10 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/batches/:id/details", requireAuth, async (req, res) => {
+  app.get("/api/batches/:id/details", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const details = await storage.getBatchWithFullDetails(id, req.session.userId!);
+      const details = await storage.getBatchWithFullDetails(id);
       if (!details) {
         return res.status(404).json({ error: "Batch not found" });
       }
@@ -705,13 +650,13 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/batches", requireAuth, async (req, res) => {
+  app.post("/api/batches", async (req, res) => {
     try {
       const { manufacturerId } = req.body;
       if (!manufacturerId) {
         return res.status(400).json({ error: "manufacturerId is required" });
       }
-      const batch = await storage.createBatch(req.session.userId!, parseInt(manufacturerId));
+      const batch = await storage.createBatch(parseInt(manufacturerId));
       res.status(201).json(batch);
     } catch (error) {
       console.error(error);
@@ -719,10 +664,10 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/batches/:id", requireAuth, async (req, res) => {
+  app.delete("/api/batches/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteBatch(id, req.session.userId!);
+      const deleted = await storage.deleteBatch(id);
       if (!deleted) {
         return res.status(404).json({ error: "Batch not found" });
       }
@@ -732,7 +677,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/rapaport-discount-rates", requireAuth, async (req, res) => {
+  app.get("/api/rapaport-discount-rates", async (req, res) => {
     try {
       const rates = await storage.getRapaportDiscountRates();
       res.json(rates);
@@ -741,7 +686,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/rapaport-discount-rates/:id", requireAuth, async (req, res) => {
+  app.get("/api/rapaport-discount-rates/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const rate = await storage.getRapaportDiscountRate(id);
@@ -754,7 +699,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/rapaport-discount-rates", requireAuth, async (req, res) => {
+  app.post("/api/rapaport-discount-rates", async (req, res) => {
     try {
       const parsed = insertRapaportDiscountRateSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -767,7 +712,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/rapaport-discount-rates/:id", requireAuth, async (req, res) => {
+  app.patch("/api/rapaport-discount-rates/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const rate = await storage.updateRapaportDiscountRate(id, req.body);
@@ -780,7 +725,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/rapaport-discount-rates/:id", requireAuth, async (req, res) => {
+  app.delete("/api/rapaport-discount-rates/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const deleted = await storage.deleteRapaportDiscountRate(id);
@@ -793,7 +738,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/rapaport-discount-rates/find/:carat", requireAuth, async (req, res) => {
+  app.get("/api/rapaport-discount-rates/find/:carat", async (req, res) => {
     try {
       const carat = parseFloat(req.params.carat);
       const rate = await storage.findRapaportDiscountRate(carat);
@@ -802,6 +747,17 @@ export async function registerRoutes(
       res.status(500).json({ error: "Failed to find discount rate" });
     }
   });
+
+  const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Oturum açmanız gerekiyor" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user?.isAdmin) {
+      return res.status(403).json({ error: "Bu işlem için admin yetkisi gerekiyor" });
+    }
+    next();
+  };
 
   app.get("/api/admin/settings", requireAuth, async (req, res) => {
     try {
@@ -814,11 +770,10 @@ export async function registerRoutes(
 
   app.patch("/api/admin/settings", requireAdmin, async (req, res) => {
     try {
-      const { ownerEmail, ccEmails, globalEmailApiKey } = req.body;
+      const { ownerEmail, ccEmails } = req.body;
       const settings = await storage.updateAdminSettings({
         ownerEmail: ownerEmail || null,
         ccEmails: ccEmails || [],
-        globalEmailApiKey: globalEmailApiKey || null,
       });
       res.json(settings);
     } catch (error) {
@@ -840,11 +795,12 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Kullanıcı bulunamadı" });
       }
 
-      const adminSettings = await storage.getAdminSettings();
-      const apiKey = user.emailApiKey || adminSettings?.globalEmailApiKey || process.env.RESEND_API_KEY;
+      const apiKey = user.emailApiKey || process.env.RESEND_API_KEY;
       if (!apiKey) {
-        return res.status(400).json({ error: "Email API anahtarı ayarlanmamış. Lütfen Admin sayfasından API anahtarını girin." });
+        return res.status(400).json({ error: "Email API anahtarı ayarlanmamış. Lütfen Ayarlar sayfasından API anahtarınızı girin." });
       }
+
+      const adminSettings = await storage.getAdminSettings();
       const ccList: string[] = [];
       if (adminSettings?.ownerEmail) {
         ccList.push(adminSettings.ownerEmail);
