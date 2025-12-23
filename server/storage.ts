@@ -236,23 +236,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAnalysisRecord(data: InsertAnalysisRecord & { userId: number }, stonesData: Omit<InsertAnalysisStone, 'analysisRecordId'>[]): Promise<AnalysisRecord> {
-    let totalStoneCost = 0;
-    for (const stone of stonesData) {
-      totalStoneCost += parseFloat(stone.totalStoneCost || "0");
-    }
-
-    const goldLabor = parseFloat(data.goldLaborCost || "0");
-    const polish = parseFloat(data.polishAmount || "0");
-    const certificate = parseFloat(data.certificateAmount || "0");
-    const fire = parseFloat(data.firePercentage || "0");
-    
-    const baseTotal = goldLabor + polish + certificate + totalStoneCost;
-    const fireAmount = baseTotal * (fire / 100);
-    const totalCost = baseTotal + fireAmount;
-
+    // Frontend'den gelen totalCost değerini kullan (doğru hesaplanmış değer)
     const [record] = await db.insert(analysisRecords).values({
       ...data,
-      totalCost: totalCost.toFixed(2),
     }).returning();
 
     if (stonesData.length > 0) {
@@ -288,6 +274,7 @@ export class DatabaseStorage implements IStorage {
       laborCost: data.laborCost !== undefined ? data.laborCost : existing.laborCost,
       totalSettingCost: data.totalSettingCost !== undefined ? data.totalSettingCost : existing.totalSettingCost,
       totalStoneCost: data.totalStoneCost !== undefined ? data.totalStoneCost : existing.totalStoneCost,
+      totalCost: data.totalCost !== undefined ? data.totalCost : existing.totalCost,
       profitLoss: data.profitLoss !== undefined ? data.profitLoss : existing.profitLoss,
       goldPriceUsed: data.goldPriceUsed !== undefined ? data.goldPriceUsed : existing.goldPriceUsed,
       usdTryUsed: data.usdTryUsed !== undefined ? data.usdTryUsed : existing.usdTryUsed,
@@ -306,27 +293,9 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    const existingStones = stonesData !== undefined 
-      ? stonesData 
-      : existing.stones || [];
-    
-    let totalStoneCost = 0;
-    for (const stone of existingStones) {
-      totalStoneCost += parseFloat(stone.totalStoneCost || "0");
-    }
-
-    const goldLabor = parseFloat(mergedData.goldLaborCost || "0");
-    const polish = parseFloat(mergedData.polishAmount || "0");
-    const certificate = parseFloat(mergedData.certificateAmount || "0");
-    const fire = parseFloat(mergedData.firePercentage || "0");
-    
-    const baseTotal = goldLabor + polish + certificate + totalStoneCost;
-    const fireAmount = baseTotal * (fire / 100);
-    const totalCost = baseTotal + fireAmount;
-
+    // Frontend'den gelen totalCost değerini kullan (doğru hesaplanmış değer)
     const [record] = await db.update(analysisRecords).set({
       ...mergedData,
-      totalCost: totalCost.toFixed(2),
     }).where(
       and(eq(analysisRecords.id, id), eq(analysisRecords.userId, userId))
     ).returning();
