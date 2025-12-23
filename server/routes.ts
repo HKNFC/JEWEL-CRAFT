@@ -782,17 +782,6 @@ export async function registerRoutes(
     }
   });
 
-  const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
-    if (!req.session.userId) {
-      return res.status(401).json({ error: "Oturum açmanız gerekiyor" });
-    }
-    const user = await storage.getUser(req.session.userId);
-    if (!user?.isAdmin) {
-      return res.status(403).json({ error: "Bu işlem için admin yetkisi gerekiyor" });
-    }
-    next();
-  };
-
   app.get("/api/admin/settings", requireAuth, async (req, res) => {
     try {
       const settings = await storage.getAdminSettings();
