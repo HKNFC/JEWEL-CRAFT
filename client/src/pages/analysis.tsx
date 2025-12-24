@@ -120,7 +120,10 @@ interface StoneEntry {
   clarity?: string;
   rapaportPrice?: number;
   discountPercent?: number;
+  quality?: string;
 }
+
+const STONE_QUALITIES = ["AAA", "AA", "A", "B", "C"];
 
 export default function AnalysisPage() {
   const { toast } = useToast();
@@ -746,6 +749,12 @@ export default function AnalysisPage() {
             g.stoneType === stone.stoneType &&
             g.minCarat && g.maxCarat &&
             caratSize >= parseFloat(g.minCarat) &&
+            caratSize <= parseFloat(g.maxCarat) &&
+            (!stone.quality || g.quality === stone.quality)
+          ) || gemstonePrices?.find(g => 
+            g.stoneType === stone.stoneType &&
+            g.minCarat && g.maxCarat &&
+            caratSize >= parseFloat(g.minCarat) &&
             caratSize <= parseFloat(g.maxCarat)
           ) || gemstonePrices?.find(g => g.stoneType === stone.stoneType);
           stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
@@ -799,6 +808,7 @@ export default function AnalysisPage() {
       clarity: s.clarity || undefined,
       rapaportPrice: s.rapaportPrice ? parseFloat(s.rapaportPrice) : undefined,
       discountPercent: s.discountPercent ? parseFloat(s.discountPercent) : undefined,
+      quality: s.quality || undefined,
     })) || []);
     setShowForm(true);
   };
@@ -1117,6 +1127,8 @@ export default function AnalysisPage() {
                         const isDiamond = stone.stoneType?.toLowerCase().includes("elmas") || 
                                           stone.stoneType?.toLowerCase().includes("diamond") ||
                                           stone.stoneType?.toLowerCase().includes("pırlanta");
+                        const caratValue = parseFloat(stone.caratSize) || 0;
+                        const isSmallStone = isDiamond && caratValue >= 0.001 && caratValue <= 0.1;
                         
                         return (
                           <div key={index} className="p-4 border rounded-lg bg-background space-y-3">
@@ -1231,6 +1243,27 @@ export default function AnalysisPage() {
                                     />
                                   </div>
                                 </>
+                              )}
+                              
+                              {isSmallStone && (
+                                <div className="w-20">
+                                  <Label className="text-xs text-muted-foreground">Kalite</Label>
+                                  <Select 
+                                    value={stone.quality || ""} 
+                                    onValueChange={(v) => updateStone(index, "quality", v)}
+                                  >
+                                    <SelectTrigger data-testid={`select-stone-quality-${index}`}>
+                                      <SelectValue placeholder="Seçin" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {STONE_QUALITIES.map((quality) => (
+                                        <SelectItem key={quality} value={quality}>
+                                          {quality}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
                               )}
                               
                               <div className="flex-1 flex items-end justify-end gap-4">
