@@ -65,9 +65,7 @@ const analysisFormSchema = z.object({
   productType: z.string().optional(),
   totalGrams: z.string().min(1, "Toplam gram gerekli"),
   goldPurity: z.string().default("24"),
-  goldLaborCost: z.string().optional(),
-  goldLaborType: z.string().default("dollar"),
-  firePercentage: z.string().optional(),
+    firePercentage: z.string().optional(),
   polishAmount: z.string().optional(),
   certificateAmount: z.string().optional(),
   manufacturerPrice: z.string().optional(),
@@ -505,8 +503,6 @@ export default function AnalysisPage() {
       productType: "",
       totalGrams: "",
       goldPurity: "24",
-      goldLaborCost: "",
-      goldLaborType: "dollar",
       firePercentage: "0",
       polishAmount: "",
       certificateAmount: "",
@@ -521,8 +517,7 @@ export default function AnalysisPage() {
     const goldPurity = form.watch("goldPurity") || "24";
     const purityFactor = GOLD_PURITIES.find(p => p.value === goldPurity)?.factor || 1;
     const firePercentage = safeNumber(fireValue[0]);
-    const goldLaborCost = safeNumber(parseFloat(form.watch("goldLaborCost") || "0"));
-    const goldLaborType = form.watch("goldLaborType");
+    const productType = form.watch("productType");
     const polishAmount = polishEnabled ? safeNumber(parseFloat(form.watch("polishAmount") || "0")) : 0;
     const certificateAmount = safeNumber(parseFloat(form.watch("certificateAmount") || "0"));
     const manufacturerPrice = safeNumber(parseFloat(form.watch("manufacturerPrice") || "0"));
@@ -532,11 +527,12 @@ export default function AnalysisPage() {
       : safeNumber(goldPricePerGram / usdTryRate);
     const rawMaterialCost = safeNumber(totalGrams * (1 + firePercentage / 100) * goldPriceUsd * purityFactor);
 
+    // İşçilik = (toplam gram × işçilik çarpanı) × altın gram fiyatı USD
     let laborCost = 0;
-    if (goldLaborType === "gold") {
-      laborCost = safeNumber(goldLaborCost * goldPriceUsd);
-    } else {
-      laborCost = safeNumber(goldLaborCost);
+    const laborPrice = laborPrices?.find(lp => lp.productType === productType);
+    if (laborPrice && totalGrams > 0) {
+      const laborMultiplier = parseFloat(laborPrice.pricePerGram) || 0;
+      laborCost = safeNumber((totalGrams * laborMultiplier) * goldPriceUsd);
     }
     laborCost += safeNumber(polishAmount);
 
@@ -567,37 +563,7 @@ export default function AnalysisPage() {
     }
   }, [selectedManufacturer, form]);
 
-  const watchedProductType = form.watch("productType");
-  const watchedTotalGrams = form.watch("totalGrams");
-
-  // İşçilik = (toplam gram × işçilik çarpanı) × altın gram fiyatı USD
-  useEffect(() => {
-    if (!laborPrices || !watchedProductType || !exchangeRates) {
-      return;
-    }
-    
-    const grams = Number(watchedTotalGrams);
-    if (isNaN(grams) || grams <= 0) {
-      form.setValue("goldLaborCost", "0");
-      return;
-    }
-    
-    const laborPrice = laborPrices.find(lp => lp.productType === watchedProductType);
-    if (laborPrice) {
-      const laborMultiplier = parseFloat(laborPrice.pricePerGram) || 0;
-      // Altın fiyatını USD'ye çevir
-      let goldPriceUsd = parseFloat(exchangeRates.gold24kPerGram) || 0;
-      if (exchangeRates.gold24kCurrency === "TRY") {
-        const usdRate = parseFloat(exchangeRates.usdTry) || 1;
-        goldPriceUsd = goldPriceUsd / usdRate;
-      }
-      // Formül: (toplam gram × işçilik çarpanı) × altın gram fiyatı USD
-      const calculatedLabor = (grams * laborMultiplier) * goldPriceUsd;
-      form.setValue("goldLaborCost", calculatedLabor.toFixed(2));
-      form.setValue("goldLaborType", "dollar");
-    }
-  }, [watchedProductType, watchedTotalGrams, laborPrices, exchangeRates, form]);
-
+  
   const lookupRapaportPrice = async (shape: string, carat: number, color: string, clarity: string): Promise<number | null> => {
     try {
       const response = await fetch(`/api/rapaport-prices/lookup?shape=${encodeURIComponent(shape)}&carat=${carat}&color=${encodeURIComponent(color)}&clarity=${encodeURIComponent(clarity)}`);
@@ -786,8 +752,6 @@ export default function AnalysisPage() {
       productType: record.productType || "",
       totalGrams: record.totalGrams,
       goldPurity: record.goldPurity || "24",
-      goldLaborCost: record.goldLaborCost || "",
-      goldLaborType: record.goldLaborType || "dollar",
       firePercentage: record.firePercentage || "0",
       polishAmount: record.polishAmount || "",
       certificateAmount: record.certificateAmount || "",
@@ -1023,42 +987,21 @@ export default function AnalysisPage() {
                       </FormItem>
                     )}
                   />
-                  <div className="space-y-2">
-                    <FormField
-                      control={form.control}
-                      name="goldLaborCost"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Altın İşçiliği</FormLabel>
-                          <div className="flex gap-1">
-                            <FormControl>
-                              <Input 
-                                type="number"
-                                step="0.01"
-                                placeholder="50" 
-                                {...field} 
-                                className="flex-1"
-                                data-testid="input-gold-labor"
-                              />
-                            </FormControl>
-                            <Select 
-                              value={form.watch("goldLaborType")} 
-                              onValueChange={(v) => form.setValue("goldLaborType", v)}
-                            >
-                              <SelectTrigger className="w-16" data-testid="select-labor-type">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="dollar">$</SelectItem>
-                                <SelectItem value="gold">gr</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  <FormItem>
+                    <FormLabel>Altın İşçiliği (Otomatik)</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-9 px-3 py-2 bg-muted rounded-md text-sm font-mono" data-testid="display-gold-labor">
+                        ${costs.laborCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {form.watch("productType") ? (
+                          laborPrices?.find(lp => lp.productType === form.watch("productType")) ? 
+                            `(${form.watch("totalGrams") || 0} gr × ${laborPrices?.find(lp => lp.productType === form.watch("productType"))?.pricePerGram || 0}) × $${(goldCurrency === "USD" ? goldPricePerGram : goldPricePerGram / usdTryRate).toFixed(2)}` :
+                            "Çarpan tanımlı değil"
+                        ) : "Ürün cinsi seçin"}
+                      </span>
+                    </div>
+                  </FormItem>
                   <FormItem>
                     <FormLabel>Fire: {fireValue[0]}%</FormLabel>
                     <Slider
@@ -1424,8 +1367,7 @@ export default function AnalysisPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Altın İşçiliği</p>
                   <p className="font-medium font-mono">
-                    {selectedRecord.goldLaborCost || "0"} 
-                    {selectedRecord.goldLaborType === "gold" ? " gr" : " $"}
+                    ${parseFloat(selectedRecord.laborCost || "0").toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div>
