@@ -293,17 +293,27 @@ export default function BatchDetailPage() {
       const manufacturer = parseFloat(record.manufacturerPrice || "0");
       const diff = calculateDiff(analysis, manufacturer);
       const diffColor = diff > 0 ? "#dc2626" : "#16a34a";
+      const rawMaterial = parseFloat(record.rawMaterialCost || "0");
+      const labor = parseFloat(record.laborCost || "0");
+      const setting = parseFloat(record.totalSettingCost || "0");
+      const polish = parseFloat(record.polishAmount || "0");
+      const certificate = parseFloat(record.certificateAmount || "0");
       
       return `
         <tr>
-          <td style="padding:8px;border:1px solid #e5e7eb;">${record.productCode}</td>
-          <td style="padding:8px;border:1px solid #e5e7eb;">${PRODUCT_TYPES[record.productType || ""] || record.productType || "-"}</td>
-          <td style="padding:8px;border:1px solid #e5e7eb;text-align:right;">${parseFloat(record.totalGrams || "0").toFixed(2)}</td>
-          <td style="padding:8px;border:1px solid #e5e7eb;text-align:right;">$${formatCurrency(parseFloat(record.rawMaterialCost || "0"))}</td>
-          <td style="padding:8px;border:1px solid #e5e7eb;text-align:right;">$${formatCurrency(stoneInfo.cost)}</td>
-          <td style="padding:8px;border:1px solid #e5e7eb;text-align:right;font-weight:600;">$${formatCurrency(analysis)}</td>
-          <td style="padding:8px;border:1px solid #e5e7eb;text-align:right;">$${formatCurrency(manufacturer)}</td>
-          <td style="padding:8px;border:1px solid #e5e7eb;text-align:right;color:${diffColor};font-weight:600;">${diff >= 0 ? "+" : ""}${diff.toFixed(1)}%</td>
+          <td style="padding:6px 4px;border:1px solid #e5e7eb;font-size:12px;">${record.productCode}</td>
+          <td style="padding:6px 4px;border:1px solid #e5e7eb;font-size:12px;">${PRODUCT_TYPES[record.productType || ""] || record.productType || "-"}</td>
+          <td style="padding:6px 4px;border:1px solid #e5e7eb;text-align:right;font-size:12px;">${parseFloat(record.totalGrams || "0").toFixed(2)}</td>
+          <td style="padding:6px 4px;border:1px solid #e5e7eb;text-align:right;font-size:12px;">$${formatCurrency(rawMaterial)}</td>
+          <td style="padding:6px 4px;border:1px solid #e5e7eb;text-align:right;font-size:12px;">$${formatCurrency(labor)}</td>
+          <td style="padding:6px 4px;border:1px solid #e5e7eb;font-size:12px;">${stoneInfo.type}</td>
+          <td style="padding:6px 4px;border:1px solid #e5e7eb;text-align:right;font-size:12px;">$${formatCurrency(stoneInfo.cost)}</td>
+          <td style="padding:6px 4px;border:1px solid #e5e7eb;text-align:right;font-size:12px;">$${formatCurrency(setting)}</td>
+          <td style="padding:6px 4px;border:1px solid #e5e7eb;text-align:right;font-size:12px;">$${formatCurrency(polish)}</td>
+          <td style="padding:6px 4px;border:1px solid #e5e7eb;text-align:right;font-size:12px;">$${formatCurrency(certificate)}</td>
+          <td style="padding:6px 4px;border:1px solid #e5e7eb;text-align:right;font-size:12px;font-weight:600;">$${formatCurrency(analysis)}</td>
+          <td style="padding:6px 4px;border:1px solid #e5e7eb;text-align:right;font-size:12px;">$${formatCurrency(manufacturer)}</td>
+          <td style="padding:6px 4px;border:1px solid #e5e7eb;text-align:right;font-size:12px;color:${diffColor};font-weight:600;">${diff >= 0 ? "+" : ""}${diff.toFixed(1)}%</td>
         </tr>
       `;
     }).join("");
@@ -317,7 +327,7 @@ export default function BatchDetailPage() {
         <meta charset="utf-8">
         <title>Parti Raporu #${batch.batchNumber}</title>
       </head>
-      <body style="font-family:Arial,sans-serif;max-width:800px;margin:0 auto;padding:20px;">
+      <body style="font-family:Arial,sans-serif;max-width:1200px;margin:0 auto;padding:20px;">
         <h1 style="color:#1f2937;">Parti #${batch.batchNumber} - Maliyet Analiz Raporu</h1>
         <p style="color:#6b7280;">Uretici: <strong>${batch.manufacturer?.name || "Bilinmeyen"}</strong></p>
         <p style="color:#6b7280;">Tarih: ${format(new Date(batch.createdAt), "d MMMM yyyy", { locale: tr })}</p>
@@ -341,14 +351,19 @@ export default function BatchDetailPage() {
         <table style="width:100%;border-collapse:collapse;margin-top:20px;">
           <thead>
             <tr style="background:#3b82f6;color:white;">
-              <th style="padding:8px;border:1px solid #3b82f6;text-align:left;">Kod</th>
-              <th style="padding:8px;border:1px solid #3b82f6;text-align:left;">Cins</th>
-              <th style="padding:8px;border:1px solid #3b82f6;text-align:right;">Gr</th>
-              <th style="padding:8px;border:1px solid #3b82f6;text-align:right;">Hammadde</th>
-              <th style="padding:8px;border:1px solid #3b82f6;text-align:right;">Tas</th>
-              <th style="padding:8px;border:1px solid #3b82f6;text-align:right;">Analiz</th>
-              <th style="padding:8px;border:1px solid #3b82f6;text-align:right;">Uretici</th>
-              <th style="padding:8px;border:1px solid #3b82f6;text-align:right;">Fark</th>
+              <th style="padding:6px 4px;border:1px solid #3b82f6;text-align:left;font-size:11px;">Stok No</th>
+              <th style="padding:6px 4px;border:1px solid #3b82f6;text-align:left;font-size:11px;">Cinsi</th>
+              <th style="padding:6px 4px;border:1px solid #3b82f6;text-align:right;font-size:11px;">Hammadde Gr</th>
+              <th style="padding:6px 4px;border:1px solid #3b82f6;text-align:right;font-size:11px;">Hammadde $</th>
+              <th style="padding:6px 4px;border:1px solid #3b82f6;text-align:right;font-size:11px;">Iscilik $</th>
+              <th style="padding:6px 4px;border:1px solid #3b82f6;text-align:left;font-size:11px;">Tas Cinsi</th>
+              <th style="padding:6px 4px;border:1px solid #3b82f6;text-align:right;font-size:11px;">Tas $</th>
+              <th style="padding:6px 4px;border:1px solid #3b82f6;text-align:right;font-size:11px;">Mihlama $</th>
+              <th style="padding:6px 4px;border:1px solid #3b82f6;text-align:right;font-size:11px;">Cila $</th>
+              <th style="padding:6px 4px;border:1px solid #3b82f6;text-align:right;font-size:11px;">Sertifika $</th>
+              <th style="padding:6px 4px;border:1px solid #3b82f6;text-align:right;font-size:11px;">Analiz $</th>
+              <th style="padding:6px 4px;border:1px solid #3b82f6;text-align:right;font-size:11px;">Uretici $</th>
+              <th style="padding:6px 4px;border:1px solid #3b82f6;text-align:right;font-size:11px;">Fark %</th>
             </tr>
           </thead>
           <tbody>
@@ -356,12 +371,17 @@ export default function BatchDetailPage() {
           </tbody>
           <tfoot>
             <tr style="background:#f3f4f6;font-weight:600;">
-              <td style="padding:8px;border:1px solid #e5e7eb;" colspan="3">TOPLAM</td>
-              <td style="padding:8px;border:1px solid #e5e7eb;text-align:right;">$${formatCurrency(totals.rawMaterial)}</td>
-              <td style="padding:8px;border:1px solid #e5e7eb;text-align:right;">$${formatCurrency(totals.stone)}</td>
-              <td style="padding:8px;border:1px solid #e5e7eb;text-align:right;">$${formatCurrency(totals.analysis)}</td>
-              <td style="padding:8px;border:1px solid #e5e7eb;text-align:right;">$${formatCurrency(totals.manufacturer)}</td>
-              <td style="padding:8px;border:1px solid #e5e7eb;text-align:right;color:${overallDiffColor};">${overallDiff >= 0 ? "+" : ""}${overallDiff.toFixed(1)}%</td>
+              <td style="padding:6px 4px;border:1px solid #e5e7eb;font-size:12px;" colspan="3">TOPLAM</td>
+              <td style="padding:6px 4px;border:1px solid #e5e7eb;text-align:right;font-size:12px;">$${formatCurrency(totals.rawMaterial)}</td>
+              <td style="padding:6px 4px;border:1px solid #e5e7eb;text-align:right;font-size:12px;">$${formatCurrency(totals.labor)}</td>
+              <td style="padding:6px 4px;border:1px solid #e5e7eb;font-size:12px;"></td>
+              <td style="padding:6px 4px;border:1px solid #e5e7eb;text-align:right;font-size:12px;">$${formatCurrency(totals.stone)}</td>
+              <td style="padding:6px 4px;border:1px solid #e5e7eb;text-align:right;font-size:12px;">$${formatCurrency(totals.setting)}</td>
+              <td style="padding:6px 4px;border:1px solid #e5e7eb;text-align:right;font-size:12px;">$${formatCurrency(totals.polish)}</td>
+              <td style="padding:6px 4px;border:1px solid #e5e7eb;text-align:right;font-size:12px;">$${formatCurrency(totals.certificate)}</td>
+              <td style="padding:6px 4px;border:1px solid #e5e7eb;text-align:right;font-size:12px;">$${formatCurrency(totals.analysis)}</td>
+              <td style="padding:6px 4px;border:1px solid #e5e7eb;text-align:right;font-size:12px;">$${formatCurrency(totals.manufacturer)}</td>
+              <td style="padding:6px 4px;border:1px solid #e5e7eb;text-align:right;font-size:12px;color:${overallDiffColor};">${overallDiff >= 0 ? "+" : ""}${overallDiff.toFixed(1)}%</td>
             </tr>
           </tfoot>
         </table>
