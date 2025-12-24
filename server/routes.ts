@@ -383,8 +383,10 @@ export async function registerRoutes(
     try {
       const { stones, ...recordData } = req.body;
       const toNullIfEmpty = (val: any) => (val === "" || val === undefined) ? null : val;
+      const userId = (req.session as any).userId;
       const parsed = insertAnalysisRecordSchema.safeParse({
         ...recordData,
+        userId: userId,
         manufacturerId: recordData.manufacturerId ? parseInt(recordData.manufacturerId) : null,
         goldPurity: recordData.goldPurity || "24",
         goldLaborCost: toNullIfEmpty(recordData.goldLaborCost),
