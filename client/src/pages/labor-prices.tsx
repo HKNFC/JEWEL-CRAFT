@@ -53,17 +53,17 @@ import {
 import type { LaborPrice } from "@shared/schema";
 
 const PRODUCT_TYPES: Record<string, string> = {
-  ring: "Yuzuk",
+  ring: "Yüzük",
   necklace: "Kolye",
   bracelet: "Bileklik",
-  earring: "Kupe",
-  brooch: "Bros",
+  earring: "Küpe",
+  brooch: "Broş",
   bangle: "Bilezik",
   chain: "Zincir",
-  solitaire: "Tektas",
-  fivestone: "Bestas",
+  solitaire: "Tektaş",
+  fivestone: "Beştaş",
   set: "Set",
-  other: "Diger",
+  other: "Diğer",
 };
 
 const laborPriceFormSchema = z.object({

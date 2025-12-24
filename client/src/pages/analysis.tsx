@@ -56,7 +56,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import type { AnalysisRecordWithRelations, Manufacturer, StoneSettingRate, GemstonePriceList, Batch, BatchWithRelations, RapaportDiscountRate } from "@shared/schema";
+import type { AnalysisRecordWithRelations, Manufacturer, StoneSettingRate, GemstonePriceList, Batch, BatchWithRelations, RapaportDiscountRate, LaborPrice } from "@shared/schema";
 
 const analysisFormSchema = z.object({
   manufacturerId: z.string().min(1, "Üretici seçiniz"),
@@ -73,19 +73,27 @@ const analysisFormSchema = z.object({
   manufacturerPrice: z.string().optional(),
 });
 
-const PRODUCT_TYPES = [
-  "Yüzük",
-  "Kolye",
-  "Bileklik",
-  "Küpe",
-  "Broş",
-  "Bilezik",
-  "Zincir",
-  "Tektaş",
-  "Beştaş",
-  "Set",
-  "Diğer",
-];
+const PRODUCT_TYPES: Record<string, string> = {
+  ring: "Yüzük",
+  necklace: "Kolye",
+  bracelet: "Bileklik",
+  earring: "Küpe",
+  brooch: "Broş",
+  bangle: "Bilezik",
+  chain: "Zincir",
+  solitaire: "Tektaş",
+  fivestone: "Beştaş",
+  set: "Set",
+  other: "Diğer",
+};
+
+const getProductTypeLabel = (productType: string | null | undefined): string => {
+  if (!productType) return "-";
+  if (PRODUCT_TYPES[productType]) return PRODUCT_TYPES[productType];
+  const values = Object.values(PRODUCT_TYPES);
+  if (values.includes(productType)) return productType;
+  return productType;
+};
 
 const GOLD_PURITIES = [
   { value: "24", label: "24 Ayar (Saf Altın)", factor: 1.000 },
@@ -174,6 +182,10 @@ export default function AnalysisPage() {
 
   const { data: rapaportDiscountRates } = useQuery<RapaportDiscountRate[]>({
     queryKey: ["/api/rapaport-discount-rates"],
+  });
+
+  const { data: laborPrices } = useQuery<LaborPrice[]>({
+    queryKey: ["/api/labor-prices"],
   });
 
   const createBatchMutation = useMutation({
@@ -555,6 +567,29 @@ export default function AnalysisPage() {
     }
   }, [selectedManufacturer, form]);
 
+  const watchedProductType = form.watch("productType");
+  const watchedTotalGrams = form.watch("totalGrams");
+
+  useEffect(() => {
+    if (!laborPrices || !watchedProductType) {
+      return;
+    }
+    
+    const grams = Number(watchedTotalGrams);
+    if (isNaN(grams) || grams <= 0) {
+      form.setValue("goldLaborCost", "0");
+      return;
+    }
+    
+    const laborPrice = laborPrices.find(lp => lp.productType === watchedProductType);
+    if (laborPrice) {
+      const pricePerGram = parseFloat(laborPrice.pricePerGram) || 0;
+      const calculatedLabor = grams * pricePerGram;
+      form.setValue("goldLaborCost", calculatedLabor.toFixed(2));
+      form.setValue("goldLaborType", "dollar");
+    }
+  }, [watchedProductType, watchedTotalGrams, laborPrices, form]);
+
   const lookupRapaportPrice = async (shape: string, carat: number, color: string, clarity: string): Promise<number | null> => {
     try {
       const response = await fetch(`/api/rapaport-prices/lookup?shape=${encodeURIComponent(shape)}&carat=${carat}&color=${encodeURIComponent(color)}&clarity=${encodeURIComponent(clarity)}`);
@@ -930,8 +965,8 @@ export default function AnalysisPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {PRODUCT_TYPES.map(type => (
-                              <SelectItem key={type} value={type}>{type}</SelectItem>
+                            {Object.entries(PRODUCT_TYPES).map(([key, label]) => (
+                              <SelectItem key={key} value={key}>{label}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -1372,7 +1407,7 @@ export default function AnalysisPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Ürün Cinsi</p>
-                  <p className="font-medium">{selectedRecord.productType || "-"}</p>
+                  <p className="font-medium">{getProductTypeLabel(selectedRecord.productType)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Toplam Gram</p>
@@ -1621,7 +1656,7 @@ export default function AnalysisPage() {
                           {record.createdAt ? new Date(record.createdAt).toLocaleDateString('tr-TR') : "-"}
                         </TableCell>
                         <TableCell className="font-medium font-mono">{record.productCode}</TableCell>
-                        <TableCell>{record.productType || "-"}</TableCell>
+                        <TableCell>{getProductTypeLabel(record.productType)}</TableCell>
                         <TableCell>{record.manufacturer?.name || "-"}</TableCell>
                         <TableCell>
                           {record.batch ? (
