@@ -68,7 +68,7 @@ const PRODUCT_TYPES: Record<string, string> = {
 
 const laborPriceFormSchema = z.object({
   productType: z.string().min(1, "Urun cinsi secin"),
-  pricePerGram: z.string().min(1, "Gram fiyati gerekli"),
+  pricePerGram: z.string().min(1, "Carpan degeri gerekli"),
 });
 
 type LaborPriceFormValues = z.infer<typeof laborPriceFormSchema>;
@@ -177,7 +177,7 @@ export default function LaborPricesPage() {
             Iscilik Fiyatlari
           </h1>
           <p className="text-muted-foreground">
-            Urun cinsine gore iscilik fiyatlarini tanimlayin ($/has gram)
+            Urun cinsine gore iscilik carpanlarini tanimlayin
           </p>
         </div>
         <Button onClick={openNewDialog} data-testid="button-add-labor-price">
@@ -190,7 +190,7 @@ export default function LaborPricesPage() {
         <CardHeader>
           <CardTitle>Tanimli Iscilik Fiyatlari</CardTitle>
           <CardDescription>
-            Analiz sirasinda urun cinsine gore iscilik otomatik hesaplanir (has gram bazinda)
+            Formul: (Toplam Gram x Carpan) x Altin Fiyati USD
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -199,7 +199,7 @@ export default function LaborPricesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Urun Cinsi</TableHead>
-                  <TableHead className="text-right">Fiyat ($/has gram)</TableHead>
+                  <TableHead className="text-right">Carpan</TableHead>
                   <TableHead className="text-right w-24">Islemler</TableHead>
                 </TableRow>
               </TableHeader>
@@ -209,8 +209,8 @@ export default function LaborPricesPage() {
                     <TableCell className="font-medium">
                       {PRODUCT_TYPES[price.productType] || price.productType}
                     </TableCell>
-                    <TableCell className="text-right">
-                      ${parseFloat(price.pricePerGram).toFixed(2)}
+                    <TableCell className="text-right font-mono">
+                      {parseFloat(price.pricePerGram).toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
@@ -306,7 +306,7 @@ export default function LaborPricesPage() {
                 name="pricePerGram"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Has Gram Fiyati ($)</FormLabel>
+                    <FormLabel>Iscilik Carpani</FormLabel>
                     <FormControl>
                       <Input
                         type="number"

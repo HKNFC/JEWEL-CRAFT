@@ -569,10 +569,10 @@ export default function AnalysisPage() {
 
   const watchedProductType = form.watch("productType");
   const watchedTotalGrams = form.watch("totalGrams");
-  const watchedGoldPurity = form.watch("goldPurity");
 
+  // İşçilik = (toplam gram × işçilik çarpanı) × altın gram fiyatı USD
   useEffect(() => {
-    if (!laborPrices || !watchedProductType) {
+    if (!laborPrices || !watchedProductType || !exchangeRates) {
       return;
     }
     
@@ -584,14 +584,19 @@ export default function AnalysisPage() {
     
     const laborPrice = laborPrices.find(lp => lp.productType === watchedProductType);
     if (laborPrice) {
-      const purityFactor = GOLD_PURITIES.find(p => p.value === watchedGoldPurity)?.factor || 1;
-      const pureGoldGrams = grams * purityFactor;
-      const pricePerGram = parseFloat(laborPrice.pricePerGram) || 0;
-      const calculatedLabor = pureGoldGrams * pricePerGram;
+      const laborMultiplier = parseFloat(laborPrice.pricePerGram) || 0;
+      // Altın fiyatını USD'ye çevir
+      let goldPriceUsd = parseFloat(exchangeRates.gold24kPerGram) || 0;
+      if (exchangeRates.gold24kCurrency === "TRY") {
+        const usdRate = parseFloat(exchangeRates.usdTry) || 1;
+        goldPriceUsd = goldPriceUsd / usdRate;
+      }
+      // Formül: (toplam gram × işçilik çarpanı) × altın gram fiyatı USD
+      const calculatedLabor = (grams * laborMultiplier) * goldPriceUsd;
       form.setValue("goldLaborCost", calculatedLabor.toFixed(2));
       form.setValue("goldLaborType", "dollar");
     }
-  }, [watchedProductType, watchedTotalGrams, watchedGoldPurity, laborPrices, form]);
+  }, [watchedProductType, watchedTotalGrams, laborPrices, exchangeRates, form]);
 
   const lookupRapaportPrice = async (shape: string, carat: number, color: string, clarity: string): Promise<number | null> => {
     try {
