@@ -54,6 +54,7 @@ import {
 import type { GemstonePriceList } from "@shared/schema";
 
 const stoneTypes = [
+  "Pırlanta",
   "Safir",
   "Zümrüt",
   "Yakut",
@@ -66,6 +67,7 @@ const stoneTypes = [
   "Sitrin",
   "Tanzanit",
   "Morganit",
+  "Sultanite",
   "Diğer",
 ];
 
