@@ -7,19 +7,65 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Settings, Mail, Plus, X, Users } from "lucide-react";
-import type { AdminSettings } from "@shared/schema";
+import { Loader2, Settings, Mail, Plus, X, Users, Key, Trash2, UserPlus, Shield, User as UserIcon } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import type { AdminSettings, User } from "@shared/schema";
+
+type SafeUser = Omit<User, "passwordHash">;
 
 export default function AdminPage() {
   const { toast } = useToast();
   
-  const { data: settings, isLoading } = useQuery<AdminSettings>({
+  const { data: settings, isLoading: settingsLoading } = useQuery<AdminSettings>({
     queryKey: ["/api/admin/settings"],
+  });
+
+  const { data: users, isLoading: usersLoading } = useQuery<SafeUser[]>({
+    queryKey: ["/api/admin/users"],
   });
 
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ccEmails, setCcEmails] = useState<string[]>([]);
   const [newCcEmail, setNewCcEmail] = useState("");
+
+  const [newUserDialogOpen, setNewUserDialogOpen] = useState(false);
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+
+  const [newUser, setNewUser] = useState({
+    username: "",
+    password: "",
+    fullName: "",
+    companyName: "",
+    email: "",
+    gender: "male",
+    isAdmin: false,
+  });
 
   useEffect(() => {
     if (settings) {
@@ -28,7 +74,7 @@ export default function AdminPage() {
     }
   }, [settings]);
 
-  const updateMutation = useMutation({
+  const updateSettingsMutation = useMutation({
     mutationFn: async (data: { ownerEmail: string; ccEmails: string[] }) => {
       const res = await apiRequest("PATCH", "/api/admin/settings", data);
       return res.json();
@@ -41,6 +87,84 @@ export default function AdminPage() {
       toast({
         title: "Hata",
         description: error?.message || "Ayarlar kaydedilemedi",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createUserMutation = useMutation({
+    mutationFn: async (data: typeof newUser) => {
+      const res = await apiRequest("POST", "/api/admin/users", data);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Kullanıcı oluşturulamadı");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({ title: "Kullanıcı oluşturuldu" });
+      setNewUserDialogOpen(false);
+      setNewUser({
+        username: "",
+        password: "",
+        fullName: "",
+        companyName: "",
+        email: "",
+        gender: "male",
+        isAdmin: false,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Hata",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ id, newPassword }: { id: number; newPassword: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/users/${id}/password`, { newPassword });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Şifre güncellenemedi");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Şifre güncellendi" });
+      setResetPasswordDialogOpen(false);
+      setNewPassword("");
+      setSelectedUserId(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Hata",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/admin/users/${id}`);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Kullanıcı silinemedi");
+      }
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({ title: "Kullanıcı silindi" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Hata",
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -73,12 +197,30 @@ export default function AdminPage() {
     setCcEmails(ccEmails.filter((e) => e !== email));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmitSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    updateMutation.mutate({ ownerEmail, ccEmails });
+    updateSettingsMutation.mutate({ ownerEmail, ccEmails });
   };
 
-  if (isLoading) {
+  const handleCreateUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    createUserMutation.mutate(newUser);
+  };
+
+  const handleResetPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedUserId && newPassword) {
+      resetPasswordMutation.mutate({ id: selectedUserId, newPassword });
+    }
+  };
+
+  const openResetPasswordDialog = (userId: number) => {
+    setSelectedUserId(userId);
+    setNewPassword("");
+    setResetPasswordDialogOpen(true);
+  };
+
+  if (settingsLoading || usersLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -87,13 +229,229 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="p-6 max-w-2xl mx-auto space-y-6">
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Admin Paneli</h1>
-        <p className="text-muted-foreground">E-posta bildirim ayarlarını yönetin</p>
+        <p className="text-muted-foreground">Kullanıcı ve e-posta ayarlarını yönetin</p>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              <CardTitle>Kullanıcı Yönetimi</CardTitle>
+            </div>
+            <Dialog open={newUserDialogOpen} onOpenChange={setNewUserDialogOpen}>
+              <DialogTrigger asChild>
+                <Button data-testid="button-add-user">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Yeni Kullanıcı
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Yeni Kullanıcı Oluştur</DialogTitle>
+                  <DialogDescription>
+                    Sisteme yeni bir kullanıcı ekleyin
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleCreateUser} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="username">Kullanıcı Adı *</Label>
+                      <Input
+                        id="username"
+                        data-testid="input-new-username"
+                        value={newUser.username}
+                        onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Şifre *</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        data-testid="input-new-password"
+                        value={newUser.password}
+                        onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName">Ad Soyad *</Label>
+                      <Input
+                        id="fullName"
+                        data-testid="input-new-fullname"
+                        value={newUser.fullName}
+                        onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="companyName">Firma Adı *</Label>
+                      <Input
+                        id="companyName"
+                        data-testid="input-new-company"
+                        value={newUser.companyName}
+                        onChange={(e) => setNewUser({ ...newUser, companyName: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">E-posta</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        data-testid="input-new-email"
+                        value={newUser.email}
+                        onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="gender">Cinsiyet</Label>
+                      <Select
+                        value={newUser.gender}
+                        onValueChange={(value) => setNewUser({ ...newUser, gender: value })}
+                      >
+                        <SelectTrigger data-testid="select-new-gender">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="male">Erkek</SelectItem>
+                          <SelectItem value="female">Kadın</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isAdmin"
+                      checked={newUser.isAdmin}
+                      onCheckedChange={(checked) => setNewUser({ ...newUser, isAdmin: !!checked })}
+                      data-testid="checkbox-new-admin"
+                    />
+                    <Label htmlFor="isAdmin">Admin yetkisi ver</Label>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit" disabled={createUserMutation.isPending} data-testid="button-create-user">
+                      {createUserMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      Oluştur
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+          <CardDescription>
+            Sistemdeki kullanıcıları görüntüleyin ve yönetin
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {users && users.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Kullanıcı Adı</TableHead>
+                  <TableHead>Ad Soyad</TableHead>
+                  <TableHead>Firma</TableHead>
+                  <TableHead>Yetki</TableHead>
+                  <TableHead className="text-right">İşlemler</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
+                    <TableCell className="font-medium">{user.username}</TableCell>
+                    <TableCell>{user.fullName}</TableCell>
+                    <TableCell>{user.companyName}</TableCell>
+                    <TableCell>
+                      {user.isAdmin ? (
+                        <Badge variant="default" className="gap-1">
+                          <Shield className="h-3 w-3" />
+                          Admin
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="gap-1">
+                          <UserIcon className="h-3 w-3" />
+                          Kullanıcı
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openResetPasswordDialog(user.id)}
+                          title="Şifre Sıfırla"
+                          data-testid={`button-reset-password-${user.id}`}
+                        >
+                          <Key className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            if (confirm(`${user.fullName} kullanıcısını silmek istediğinize emin misiniz?`)) {
+                              deleteUserMutation.mutate(user.id);
+                            }
+                          }}
+                          title="Kullanıcıyı Sil"
+                          data-testid={`button-delete-user-${user.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-muted-foreground text-center py-8">Henüz kullanıcı yok</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Şifre Sıfırla</DialogTitle>
+            <DialogDescription>
+              Kullanıcı için yeni bir şifre belirleyin
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Yeni Şifre</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                data-testid="input-reset-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="En az 6 karakter"
+                required
+                minLength={6}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={resetPasswordMutation.isPending} data-testid="button-confirm-reset">
+                {resetPasswordMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Şifreyi Güncelle
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <form onSubmit={handleSubmitSettings}>
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -186,9 +544,9 @@ export default function AdminPage() {
               <Button
                 type="submit"
                 data-testid="button-save-admin"
-                disabled={updateMutation.isPending}
+                disabled={updateSettingsMutation.isPending}
               >
-                {updateMutation.isPending && (
+                {updateSettingsMutation.isPending && (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 )}
                 Kaydet
@@ -197,38 +555,6 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       </form>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            <CardTitle>E-posta Gönderim Özeti</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            Raporlar gönderildiğinde aşağıdaki adreslere bildirim yapılacak:
-          </p>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">TO</Badge>
-              <span className="text-sm">Üretici e-posta adresi (rapor sayfasından seçilen)</span>
-            </div>
-            {ownerEmail && (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">CC</Badge>
-                <span className="text-sm">{ownerEmail} (İş Sahibi)</span>
-              </div>
-            )}
-            {ccEmails.map((email) => (
-              <div key={email} className="flex items-center gap-2">
-                <Badge variant="secondary">CC</Badge>
-                <span className="text-sm">{email}</span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

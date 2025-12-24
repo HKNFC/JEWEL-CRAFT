@@ -41,8 +41,10 @@ import { eq, and, gte, lte, desc } from "drizzle-orm";
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getAllUsers(): Promise<User[]>;
   createUser(data: InsertUser & { passwordHash: string }): Promise<User>;
   updateUser(id: number, data: Partial<InsertUser & { passwordHash?: string }>): Promise<User | undefined>;
+  deleteUser(id: number): Promise<boolean>;
 
   getManufacturers(): Promise<Manufacturer[]>;
   getManufacturer(id: number): Promise<Manufacturer | undefined>;
@@ -115,6 +117,15 @@ export class DatabaseStorage implements IStorage {
   async updateUser(id: number, data: Partial<InsertUser & { passwordHash?: string }>): Promise<User | undefined> {
     const [user] = await db.update(users).set(data).where(eq(users.id, id)).returning();
     return user || undefined;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, id)).returning();
+    return result.length > 0;
   }
 
   async getManufacturers(): Promise<Manufacturer[]> {

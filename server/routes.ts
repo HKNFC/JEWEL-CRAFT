@@ -782,6 +782,90 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      const safeUsers = users.map(({ passwordHash, ...user }) => user);
+      res.json(safeUsers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.post("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+      const { username, password, fullName, companyName, email, gender, isAdmin } = req.body;
+      
+      if (!username || !password || !fullName || !companyName) {
+        return res.status(400).json({ error: "Kullanıcı adı, şifre, ad soyad ve firma adı zorunludur" });
+      }
+
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ error: "Bu kullanıcı adı zaten kullanılıyor" });
+      }
+
+      const passwordHash = await bcrypt.hash(password, 10);
+      const user = await storage.createUser({
+        username,
+        passwordHash,
+        fullName,
+        companyName,
+        email: email || null,
+        gender: gender || "male",
+        isAdmin: isAdmin || false,
+      });
+
+      const { passwordHash: _, ...safeUser } = user;
+      res.status(201).json(safeUser);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to create user" });
+    }
+  });
+
+  app.patch("/api/admin/users/:id/password", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { newPassword } = req.body;
+
+      if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ error: "Şifre en az 6 karakter olmalıdır" });
+      }
+
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      }
+
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+      await storage.updateUser(id, { passwordHash });
+
+      res.json({ success: true, message: "Şifre başarıyla güncellendi" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to reset password" });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      const currentUser = await storage.getUser(req.session.userId!);
+      if (currentUser?.id === id) {
+        return res.status(400).json({ error: "Kendinizi silemezsiniz" });
+      }
+
+      const deleted = await storage.deleteUser(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
+
   app.post("/api/send-batch-report", requireAuth, async (req, res) => {
     try {
       const { batchId, email, subject, htmlContent } = req.body;
