@@ -120,6 +120,12 @@ export const rapaportDiscountRates = pgTable("rapaport_discount_rates", {
   discountPercent: decimal("discount_percent", { precision: 5, scale: 2 }).notNull(),
 });
 
+export const laborPrices = pgTable("labor_prices", {
+  id: serial("id").primaryKey(),
+  productType: text("product_type").notNull(),
+  pricePerGram: decimal("price_per_gram", { precision: 10, scale: 2 }).notNull(),
+});
+
 export const batches = pgTable("batches", {
   id: serial("id").primaryKey(),
   manufacturerId: integer("manufacturer_id").references(() => manufacturers.id).notNull(),
@@ -168,6 +174,7 @@ export const insertAnalysisStoneSchema = createInsertSchema(analysisStones).omit
 export const insertExchangeRateSchema = createInsertSchema(exchangeRates).omit({ id: true, updatedAt: true });
 export const insertRapaportPriceSchema = createInsertSchema(rapaportPrices).omit({ id: true, uploadedAt: true });
 export const insertRapaportDiscountRateSchema = createInsertSchema(rapaportDiscountRates).omit({ id: true });
+export const insertLaborPriceSchema = createInsertSchema(laborPrices).omit({ id: true });
 export const insertBatchSchema = createInsertSchema(batches).omit({ id: true, createdAt: true });
 
 export type User = typeof users.$inferSelect;
@@ -199,6 +206,9 @@ export type InsertRapaportPrice = z.infer<typeof insertRapaportPriceSchema>;
 
 export type RapaportDiscountRate = typeof rapaportDiscountRates.$inferSelect;
 export type InsertRapaportDiscountRate = z.infer<typeof insertRapaportDiscountRateSchema>;
+
+export type LaborPrice = typeof laborPrices.$inferSelect;
+export type InsertLaborPrice = z.infer<typeof insertLaborPriceSchema>;
 
 export type Batch = typeof batches.$inferSelect;
 export type InsertBatch = z.infer<typeof insertBatchSchema>;
