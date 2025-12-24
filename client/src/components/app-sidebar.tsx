@@ -13,7 +13,8 @@ import {
   Settings,
   LogOut,
   Loader2,
-  Shield
+  Shield,
+  Hammer
 } from "lucide-react";
 import {
   Sidebar,
@@ -45,6 +46,11 @@ const menuItems = [
     title: "Mıhlama Listesi",
     url: "/stone-rates",
     icon: ListOrdered,
+  },
+  {
+    title: "İşçilik Fiyatları",
+    url: "/labor-prices",
+    icon: Hammer,
   },
   {
     title: "Taş Fiyatları",
