@@ -585,32 +585,16 @@ export default function AnalysisPage() {
     }
   };
 
-  const getSettingCost = (caratSize: number, quantity: number, stoneType: string, clarity?: string): number => {
+  const getSettingCost = (caratSize: number, quantity: number, stoneType: string): number => {
     const isDiamond = stoneType.toLowerCase().includes("elmas") || 
                       stoneType.toLowerCase().includes("diamond") ||
                       stoneType.toLowerCase().includes("pırlanta");
     const category = isDiamond ? "diamond" : "colored";
     
-    const normalizeClarity = (c?: string): string => {
-      if (!c) return "";
-      const upper = c.toUpperCase();
-      if (upper.startsWith("VS")) return "VS";
-      if (upper.startsWith("SI")) return "SI";
-      return upper;
-    };
-    
-    const settingRate = stoneRates?.find(r => {
-      const categoryMatch = r.stoneCategory === category || (!r.stoneCategory && category === "diamond");
-      const caratMatch = caratSize >= parseFloat(r.minCarat) && caratSize <= parseFloat(r.maxCarat);
-      
-      if (!categoryMatch || !caratMatch) return false;
-      
-      if (isDiamond && r.pricingType === "per_carat" && r.clarity) {
-        return normalizeClarity(r.clarity) === normalizeClarity(clarity);
-      }
-      
-      return true;
-    });
+    const settingRate = stoneRates?.find(r => 
+      (r.stoneCategory === category || (!r.stoneCategory && category === "diamond")) &&
+      caratSize >= parseFloat(r.minCarat) && caratSize <= parseFloat(r.maxCarat)
+    );
     
     if (!settingRate) return 0;
     
@@ -728,7 +712,7 @@ export default function AnalysisPage() {
       const caratSize = parseFloat(stone.caratSize);
       const quantity = stone.quantity || 1;
       
-      stone.settingCost = getSettingCost(caratSize, quantity, stone.stoneType, stone.clarity);
+      stone.settingCost = getSettingCost(caratSize, quantity, stone.stoneType);
       
       const isDiamond = stone.stoneType.toLowerCase().includes("elmas") || 
                         stone.stoneType.toLowerCase().includes("diamond") ||
