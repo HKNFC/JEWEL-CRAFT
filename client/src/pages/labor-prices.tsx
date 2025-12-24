@@ -177,7 +177,7 @@ export default function LaborPricesPage() {
             Iscilik Fiyatlari
           </h1>
           <p className="text-muted-foreground">
-            Urun cinsine gore iscilik fiyatlarini tanimlayin ($/gram)
+            Urun cinsine gore iscilik fiyatlarini tanimlayin ($/has gram)
           </p>
         </div>
         <Button onClick={openNewDialog} data-testid="button-add-labor-price">
@@ -190,7 +190,7 @@ export default function LaborPricesPage() {
         <CardHeader>
           <CardTitle>Tanimli Iscilik Fiyatlari</CardTitle>
           <CardDescription>
-            Analiz sirasinda urun cinsine gore iscilik otomatik hesaplanir
+            Analiz sirasinda urun cinsine gore iscilik otomatik hesaplanir (has gram bazinda)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -199,7 +199,7 @@ export default function LaborPricesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Urun Cinsi</TableHead>
-                  <TableHead className="text-right">Fiyat ($/gram)</TableHead>
+                  <TableHead className="text-right">Fiyat ($/has gram)</TableHead>
                   <TableHead className="text-right w-24">Islemler</TableHead>
                 </TableRow>
               </TableHeader>
@@ -306,7 +306,7 @@ export default function LaborPricesPage() {
                 name="pricePerGram"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Gram Fiyati ($)</FormLabel>
+                    <FormLabel>Has Gram Fiyati ($)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"

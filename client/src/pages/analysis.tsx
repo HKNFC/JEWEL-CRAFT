@@ -569,6 +569,7 @@ export default function AnalysisPage() {
 
   const watchedProductType = form.watch("productType");
   const watchedTotalGrams = form.watch("totalGrams");
+  const watchedGoldPurity = form.watch("goldPurity");
 
   useEffect(() => {
     if (!laborPrices || !watchedProductType) {
@@ -583,12 +584,14 @@ export default function AnalysisPage() {
     
     const laborPrice = laborPrices.find(lp => lp.productType === watchedProductType);
     if (laborPrice) {
+      const purityFactor = GOLD_PURITIES.find(p => p.value === watchedGoldPurity)?.factor || 1;
+      const pureGoldGrams = grams * purityFactor;
       const pricePerGram = parseFloat(laborPrice.pricePerGram) || 0;
-      const calculatedLabor = grams * pricePerGram;
+      const calculatedLabor = pureGoldGrams * pricePerGram;
       form.setValue("goldLaborCost", calculatedLabor.toFixed(2));
       form.setValue("goldLaborType", "dollar");
     }
-  }, [watchedProductType, watchedTotalGrams, laborPrices, form]);
+  }, [watchedProductType, watchedTotalGrams, watchedGoldPurity, laborPrices, form]);
 
   const lookupRapaportPrice = async (shape: string, carat: number, color: string, clarity: string): Promise<number | null> => {
     try {
