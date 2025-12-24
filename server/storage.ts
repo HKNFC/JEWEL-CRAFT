@@ -8,6 +8,7 @@ import {
   exchangeRates,
   rapaportPrices,
   rapaportDiscountRates,
+  laborPrices,
   batches,
   adminSettings,
   type User,
@@ -29,6 +30,8 @@ import {
   type InsertRapaportPrice,
   type RapaportDiscountRate,
   type InsertRapaportDiscountRate,
+  type LaborPrice,
+  type InsertLaborPrice,
   type Batch,
   type InsertBatch,
   type BatchWithRelations,
@@ -93,6 +96,13 @@ export interface IStorage {
   updateRapaportDiscountRate(id: number, data: Partial<InsertRapaportDiscountRate>): Promise<RapaportDiscountRate | undefined>;
   deleteRapaportDiscountRate(id: number): Promise<boolean>;
   findRapaportDiscountRate(carat: number): Promise<RapaportDiscountRate | undefined>;
+
+  getLaborPrices(): Promise<LaborPrice[]>;
+  getLaborPrice(id: number): Promise<LaborPrice | undefined>;
+  getLaborPriceByProductType(productType: string): Promise<LaborPrice | undefined>;
+  createLaborPrice(data: InsertLaborPrice): Promise<LaborPrice>;
+  updateLaborPrice(id: number, data: Partial<InsertLaborPrice>): Promise<LaborPrice | undefined>;
+  deleteLaborPrice(id: number): Promise<boolean>;
 
   getAdminSettings(): Promise<AdminSettings | undefined>;
   updateAdminSettings(data: InsertAdminSettings): Promise<AdminSettings>;
@@ -468,6 +478,35 @@ export class DatabaseStorage implements IStorage {
         gte(rapaportDiscountRates.maxCarat, caratStr)
       ));
     return rate || undefined;
+  }
+
+  async getLaborPrices(): Promise<LaborPrice[]> {
+    return db.select().from(laborPrices);
+  }
+
+  async getLaborPrice(id: number): Promise<LaborPrice | undefined> {
+    const [price] = await db.select().from(laborPrices).where(eq(laborPrices.id, id));
+    return price || undefined;
+  }
+
+  async getLaborPriceByProductType(productType: string): Promise<LaborPrice | undefined> {
+    const [price] = await db.select().from(laborPrices).where(eq(laborPrices.productType, productType));
+    return price || undefined;
+  }
+
+  async createLaborPrice(data: InsertLaborPrice): Promise<LaborPrice> {
+    const [price] = await db.insert(laborPrices).values(data).returning();
+    return price;
+  }
+
+  async updateLaborPrice(id: number, data: Partial<InsertLaborPrice>): Promise<LaborPrice | undefined> {
+    const [price] = await db.update(laborPrices).set(data).where(eq(laborPrices.id, id)).returning();
+    return price || undefined;
+  }
+
+  async deleteLaborPrice(id: number): Promise<boolean> {
+    const result = await db.delete(laborPrices).where(eq(laborPrices.id, id)).returning();
+    return result.length > 0;
   }
 
   async getAdminSettings(): Promise<AdminSettings | undefined> {

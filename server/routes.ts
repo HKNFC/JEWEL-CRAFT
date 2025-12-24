@@ -748,6 +748,76 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/labor-prices", async (req, res) => {
+    try {
+      const prices = await storage.getLaborPrices();
+      res.json(prices);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch labor prices" });
+    }
+  });
+
+  app.get("/api/labor-prices/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const price = await storage.getLaborPrice(id);
+      if (!price) {
+        return res.status(404).json({ error: "Labor price not found" });
+      }
+      res.json(price);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch labor price" });
+    }
+  });
+
+  app.get("/api/labor-prices/by-type/:productType", async (req, res) => {
+    try {
+      const price = await storage.getLaborPriceByProductType(req.params.productType);
+      res.json(price || null);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch labor price" });
+    }
+  });
+
+  app.post("/api/labor-prices", async (req, res) => {
+    try {
+      const { productType, pricePerGram } = req.body;
+      if (!productType || pricePerGram === undefined) {
+        return res.status(400).json({ error: "Product type and price per gram are required" });
+      }
+      const price = await storage.createLaborPrice({ productType, pricePerGram });
+      res.status(201).json(price);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create labor price" });
+    }
+  });
+
+  app.patch("/api/labor-prices/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const price = await storage.updateLaborPrice(id, req.body);
+      if (!price) {
+        return res.status(404).json({ error: "Labor price not found" });
+      }
+      res.json(price);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update labor price" });
+    }
+  });
+
+  app.delete("/api/labor-prices/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteLaborPrice(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Labor price not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete labor price" });
+    }
+  });
+
   const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
     if (!req.session.userId) {
       return res.status(401).json({ error: "Oturum açmanız gerekiyor" });
