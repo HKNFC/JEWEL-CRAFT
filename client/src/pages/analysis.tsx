@@ -726,7 +726,9 @@ export default function AnalysisPage() {
           }
         }
         
-        if (stone.shape && stone.color && stone.clarity) {
+        const isSmallStone = caratSize >= 0.001 && caratSize <= 0.1;
+        
+        if (!isSmallStone && stone.shape && stone.color && stone.clarity) {
           const rapPrice = await lookupRapaportPrice(stone.shape, caratSize, stone.color, stone.clarity);
           if (rapPrice) {
             stone.rapaportPrice = rapPrice;
@@ -739,6 +741,7 @@ export default function AnalysisPage() {
             stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
           }
         } else {
+          stone.rapaportPrice = undefined;
           const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
           stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
           stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
