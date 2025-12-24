@@ -742,12 +742,22 @@ export default function AnalysisPage() {
           }
         } else {
           stone.rapaportPrice = undefined;
-          const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
+          const gemstone = gemstonePrices?.find(g => 
+            g.stoneType === stone.stoneType &&
+            g.minCarat && g.maxCarat &&
+            caratSize >= parseFloat(g.minCarat) &&
+            caratSize <= parseFloat(g.maxCarat)
+          ) || gemstonePrices?.find(g => g.stoneType === stone.stoneType);
           stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
           stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
         }
       } else {
-        const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
+        const gemstone = gemstonePrices?.find(g => 
+          g.stoneType === stone.stoneType &&
+          g.minCarat && g.maxCarat &&
+          caratSize >= parseFloat(g.minCarat) &&
+          caratSize <= parseFloat(g.maxCarat)
+        ) || gemstonePrices?.find(g => g.stoneType === stone.stoneType);
         stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
         stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
       }
