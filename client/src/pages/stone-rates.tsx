@@ -60,6 +60,7 @@ const stoneRateFormSchema = z.object({
   pricePerStone: z.string().min(1, "Fiyat gerekli"),
   stoneCategory: z.string(),
   pricingType: z.string().default("per_stone"),
+  clarity: z.string().optional(),
 });
 
 type StoneRateFormValues = z.infer<typeof stoneRateFormSchema>;
@@ -87,8 +88,12 @@ export default function StoneRatesPage() {
       pricePerStone: "",
       stoneCategory: "diamond",
       pricingType: "per_stone",
+      clarity: "",
     },
   });
+
+  const watchPricingType = form.watch("pricingType");
+  const watchCategory = form.watch("stoneCategory");
 
   const createMutation = useMutation({
     mutationFn: (data: StoneRateFormValues) => 
@@ -147,13 +152,14 @@ export default function StoneRatesPage() {
       pricePerStone: rate.pricePerStone,
       stoneCategory: rate.stoneCategory || "diamond",
       pricingType: rate.pricingType || "per_stone",
+      clarity: rate.clarity || "",
     });
     setDialogOpen(true);
   };
 
   const openNewDialog = (category: "diamond" | "colored") => {
     setEditingId(null);
-    form.reset({ minCarat: "", maxCarat: "", pricePerStone: "", stoneCategory: category, pricingType: "per_stone" });
+    form.reset({ minCarat: "", maxCarat: "", pricePerStone: "", stoneCategory: category, pricingType: "per_stone", clarity: "" });
     setDialogOpen(true);
   };
 
@@ -168,6 +174,7 @@ export default function StoneRatesPage() {
             <TableRow>
               <TableHead>Karat Aralığı</TableHead>
               <TableHead>Fiyatlandırma</TableHead>
+              {category === "diamond" && <TableHead>Temizlik</TableHead>}
               <TableHead>Fiyat</TableHead>
               <TableHead className="text-right">İşlemler</TableHead>
             </TableRow>
@@ -181,6 +188,11 @@ export default function StoneRatesPage() {
                 <TableCell>
                   {PRICING_TYPES[rate.pricingType as keyof typeof PRICING_TYPES] || "Taş Başına"}
                 </TableCell>
+                {category === "diamond" && (
+                  <TableCell>
+                    {rate.pricingType === "per_carat" && rate.clarity ? rate.clarity : "-"}
+                  </TableCell>
+                )}
                 <TableCell className="font-mono">
                   ${parseFloat(rate.pricePerStone).toFixed(2)}{rate.pricingType === "per_carat" ? "/ct" : "/adet"}
                 </TableCell>
@@ -322,6 +334,32 @@ export default function StoneRatesPage() {
                   </FormItem>
                 )}
               />
+              {watchPricingType === "per_carat" && watchCategory === "diamond" && (
+                <FormField
+                  control={form.control}
+                  name="clarity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Temizlik Kalitesi *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-clarity">
+                            <SelectValue placeholder="Temizlik kalitesi seçin" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="VS">VS</SelectItem>
+                          <SelectItem value="SI">SI</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Pırlanta temizlik kalitesine göre mıhlama fiyatı
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               <FormField
                 control={form.control}
                 name="pricePerStone"

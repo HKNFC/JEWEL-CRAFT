@@ -42,6 +42,7 @@ export const stoneSettingRates = pgTable("stone_setting_rates", {
   maxCarat: decimal("max_carat", { precision: 6, scale: 4 }).notNull(),
   pricePerStone: decimal("price_per_stone", { precision: 10, scale: 2 }).notNull(),
   pricingType: text("pricing_type").notNull().default("per_stone"),
+  clarity: text("clarity"),
 });
 
 export const gemstonePriceLists = pgTable("gemstone_price_lists", {
