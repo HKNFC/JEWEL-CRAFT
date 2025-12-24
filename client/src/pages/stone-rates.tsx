@@ -8,6 +8,13 @@ import { z } from "zod";
 import { Plus, Pencil, Trash2, ListOrdered, Gem, Diamond } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -52,9 +59,15 @@ const stoneRateFormSchema = z.object({
   maxCarat: z.string().min(1, "Maksimum karat gerekli"),
   pricePerStone: z.string().min(1, "Fiyat gerekli"),
   stoneCategory: z.string(),
+  pricingType: z.string().default("per_stone"),
 });
 
 type StoneRateFormValues = z.infer<typeof stoneRateFormSchema>;
+
+const PRICING_TYPES = {
+  per_stone: "Taş Başına",
+  per_carat: "Karat Başına",
+};
 
 export default function StoneRatesPage() {
   const { toast } = useToast();
@@ -73,6 +86,7 @@ export default function StoneRatesPage() {
       maxCarat: "",
       pricePerStone: "",
       stoneCategory: "diamond",
+      pricingType: "per_stone",
     },
   });
 
@@ -132,13 +146,14 @@ export default function StoneRatesPage() {
       maxCarat: rate.maxCarat,
       pricePerStone: rate.pricePerStone,
       stoneCategory: rate.stoneCategory || "diamond",
+      pricingType: rate.pricingType || "per_stone",
     });
     setDialogOpen(true);
   };
 
   const openNewDialog = (category: "diamond" | "colored") => {
     setEditingId(null);
-    form.reset({ minCarat: "", maxCarat: "", pricePerStone: "", stoneCategory: category });
+    form.reset({ minCarat: "", maxCarat: "", pricePerStone: "", stoneCategory: category, pricingType: "per_stone" });
     setDialogOpen(true);
   };
 
@@ -152,7 +167,8 @@ export default function StoneRatesPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Karat Aralığı</TableHead>
-              <TableHead>Taş Başı Fiyat</TableHead>
+              <TableHead>Fiyatlandırma</TableHead>
+              <TableHead>Fiyat</TableHead>
               <TableHead className="text-right">İşlemler</TableHead>
             </TableRow>
           </TableHeader>
@@ -162,8 +178,11 @@ export default function StoneRatesPage() {
                 <TableCell className="font-medium font-mono">
                   {rate.minCarat} - {rate.maxCarat} ct
                 </TableCell>
+                <TableCell>
+                  {PRICING_TYPES[rate.pricingType as keyof typeof PRICING_TYPES] || "Taş Başına"}
+                </TableCell>
                 <TableCell className="font-mono">
-                  ${parseFloat(rate.pricePerStone).toFixed(2)}
+                  ${parseFloat(rate.pricePerStone).toFixed(2)}{rate.pricingType === "per_carat" ? "/ct" : "/adet"}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
@@ -281,10 +300,34 @@ export default function StoneRatesPage() {
               </div>
               <FormField
                 control={form.control}
+                name="pricingType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fiyatlandırma Türü *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-pricing-type">
+                          <SelectValue placeholder="Fiyatlandırma türü seçin" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="per_stone">Taş Başına</SelectItem>
+                        <SelectItem value="per_carat">Karat Başına</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Taş Başına: Her taş için sabit fiyat | Karat Başına: Karat x Fiyat
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 name="pricePerStone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Taş Başı Fiyat ($) *</FormLabel>
+                    <FormLabel>Fiyat ($) *</FormLabel>
                     <FormControl>
                       <Input 
                         type="number"
@@ -294,6 +337,9 @@ export default function StoneRatesPage() {
                         data-testid="input-price-per-stone"
                       />
                     </FormControl>
+                    <FormDescription>
+                      {form.watch("pricingType") === "per_carat" ? "Karat başına fiyat" : "Taş başına fiyat"}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
