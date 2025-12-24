@@ -6,6 +6,7 @@ import { tr } from "date-fns/locale";
 import { ArrowLeft, FileText, Download, Factory, Calendar, Package, TrendingUp, TrendingDown, Loader2, Mail, Send } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +56,7 @@ export default function BatchDetailPage() {
   const [, params] = useRoute("/batch/:id");
   const batchId = params?.id ? parseInt(params.id) : null;
   const { toast } = useToast();
+  const { user } = useAuth();
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [recipientEmail, setRecipientEmail] = useState("");
 
@@ -328,6 +330,10 @@ export default function BatchDetailPage() {
         <title>Parti Raporu #${batch.batchNumber}</title>
       </head>
       <body style="font-family:Arial,sans-serif;max-width:1200px;margin:0 auto;padding:20px;">
+        <div style="border-bottom:2px solid #3b82f6;padding-bottom:16px;margin-bottom:20px;">
+          <h2 style="color:#1f2937;margin:0 0 4px 0;">${user?.companyName || "Firma"}</h2>
+          <p style="color:#6b7280;margin:0;font-size:14px;">Analizi Yapan: <strong>${user?.fullName || "Bilinmeyen"}</strong></p>
+        </div>
         <h1 style="color:#1f2937;">Parti #${batch.batchNumber} - Maliyet Analiz Raporu</h1>
         <p style="color:#6b7280;">Uretici: <strong>${batch.manufacturer?.name || "Bilinmeyen"}</strong></p>
         <p style="color:#6b7280;">Tarih: ${format(new Date(batch.createdAt), "d MMMM yyyy", { locale: tr })}</p>
