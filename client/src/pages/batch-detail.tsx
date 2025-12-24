@@ -41,6 +41,7 @@ interface BatchDetailsResponse {
 const PRODUCT_TYPES: Record<string, string> = {
   ring: "Yüzük",
   necklace: "Kolye",
+  pendant: "Kolye Ucu",
   bracelet: "Bileklik",
   earring: "Küpe",
   brooch: "Broş",
