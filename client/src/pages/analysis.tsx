@@ -731,22 +731,7 @@ export default function AnalysisPage() {
         
         const isSmallStone = caratSize >= 0.001 && caratSize <= 0.1;
         
-        if (!isSmallStone && stone.shape && stone.color && stone.clarity) {
-          // Large diamonds (>0.1 carat) - use Rapaport prices
-          const rapPrice = await lookupRapaportPrice(stone.shape, caratSize, stone.color, stone.clarity);
-          if (rapPrice) {
-            stone.rapaportPrice = rapPrice;
-            const discountPercent = stone.discountPercent || 0;
-            const discountedPrice = rapPrice * (1 - discountPercent / 100);
-            stone.totalStoneCost = discountedPrice * caratSize * quantity;
-          } else {
-            const gemstone = gemstonePrices?.find(g => 
-              g.stoneType.toLowerCase() === stone.stoneType.toLowerCase()
-            );
-            stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
-            stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
-          }
-        } else {
+        if (isSmallStone) {
           // Small diamonds (0.001-0.1 carat) - use gemstone price list with quality matching
           // Rapaport prices are NOT used for small diamonds
           stone.rapaportPrice = undefined;
@@ -781,6 +766,27 @@ export default function AnalysisPage() {
           
           stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
           stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
+        } else {
+          // Large diamonds (>0.1 carat) - MUST use Rapaport prices with discount
+          if (stone.shape && stone.color && stone.clarity) {
+            const rapPrice = await lookupRapaportPrice(stone.shape, caratSize, stone.color, stone.clarity);
+            if (rapPrice) {
+              stone.rapaportPrice = rapPrice;
+              const discountPercent = stone.discountPercent || 0;
+              const discountedPrice = rapPrice * (1 - discountPercent / 100);
+              stone.totalStoneCost = discountedPrice * caratSize * quantity;
+            } else {
+              // Rapaport price not found - set to 0 until found
+              stone.rapaportPrice = undefined;
+              stone.pricePerCarat = 0;
+              stone.totalStoneCost = 0;
+            }
+          } else {
+            // Shape/color/clarity not set yet - waiting for user input
+            stone.rapaportPrice = undefined;
+            stone.pricePerCarat = 0;
+            stone.totalStoneCost = 0;
+          }
         }
       } else {
         // Non-diamond stones - use gemstone price list with case-insensitive matching
