@@ -732,6 +732,7 @@ export default function AnalysisPage() {
         const isSmallStone = caratSize >= 0.001 && caratSize <= 0.1;
         
         if (!isSmallStone && stone.shape && stone.color && stone.clarity) {
+          // Large diamonds (>0.1 carat) - use Rapaport prices
           const rapPrice = await lookupRapaportPrice(stone.shape, caratSize, stone.color, stone.clarity);
           if (rapPrice) {
             stone.rapaportPrice = rapPrice;
@@ -739,34 +740,57 @@ export default function AnalysisPage() {
             const discountedPrice = rapPrice * (1 - discountPercent / 100);
             stone.totalStoneCost = discountedPrice * caratSize * quantity;
           } else {
-            const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
+            const gemstone = gemstonePrices?.find(g => 
+              g.stoneType.toLowerCase() === stone.stoneType.toLowerCase()
+            );
             stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
             stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
           }
         } else {
+          // Small diamonds (0.001-0.1 carat) - use gemstone price list with quality matching
+          // Rapaport prices are NOT used for small diamonds
           stone.rapaportPrice = undefined;
-          const gemstone = gemstonePrices?.find(g => 
-            g.stoneType === stone.stoneType &&
+          
+          const stoneTypeLower = stone.stoneType.toLowerCase();
+          
+          // For small diamonds, find gemstone price by: stoneType + carat range + quality (required if set)
+          let gemstone = gemstonePrices?.find(g => 
+            g.stoneType.toLowerCase() === stoneTypeLower &&
             g.minCarat && g.maxCarat &&
             caratSize >= parseFloat(g.minCarat) &&
             caratSize <= parseFloat(g.maxCarat) &&
-            (!stone.quality || g.quality === stone.quality)
-          ) || gemstonePrices?.find(g => 
-            g.stoneType === stone.stoneType &&
-            g.minCarat && g.maxCarat &&
-            caratSize >= parseFloat(g.minCarat) &&
-            caratSize <= parseFloat(g.maxCarat)
-          ) || gemstonePrices?.find(g => g.stoneType === stone.stoneType);
+            stone.quality && g.quality === stone.quality
+          );
+          
+          // If quality is not set, find by stoneType + carat range only
+          if (!gemstone && !stone.quality) {
+            gemstone = gemstonePrices?.find(g => 
+              g.stoneType.toLowerCase() === stoneTypeLower &&
+              g.minCarat && g.maxCarat &&
+              caratSize >= parseFloat(g.minCarat) &&
+              caratSize <= parseFloat(g.maxCarat)
+            );
+          }
+          
+          // Final fallback: just stoneType (only if quality not set)
+          if (!gemstone && !stone.quality) {
+            gemstone = gemstonePrices?.find(g => 
+              g.stoneType.toLowerCase() === stoneTypeLower
+            );
+          }
+          
           stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
           stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
         }
       } else {
+        // Non-diamond stones - use gemstone price list with case-insensitive matching
+        const stoneTypeLower = stone.stoneType.toLowerCase();
         const gemstone = gemstonePrices?.find(g => 
-          g.stoneType === stone.stoneType &&
+          g.stoneType.toLowerCase() === stoneTypeLower &&
           g.minCarat && g.maxCarat &&
           caratSize >= parseFloat(g.minCarat) &&
           caratSize <= parseFloat(g.maxCarat)
-        ) || gemstonePrices?.find(g => g.stoneType === stone.stoneType);
+        ) || gemstonePrices?.find(g => g.stoneType.toLowerCase() === stoneTypeLower);
         stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
         stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
       }
