@@ -89,7 +89,6 @@ export const analysisStones = pgTable("analysis_stones", {
   shape: text("shape"),
   color: text("color"),
   clarity: text("clarity"),
-  quality: text("quality"),
   rapaportPrice: decimal("rapaport_price", { precision: 10, scale: 2 }),
   discountPercent: decimal("discount_percent", { precision: 5, scale: 2 }),
   settingCost: decimal("setting_cost", { precision: 10, scale: 2 }),

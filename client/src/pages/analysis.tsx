@@ -120,10 +120,7 @@ interface StoneEntry {
   clarity?: string;
   rapaportPrice?: number;
   discountPercent?: number;
-  quality?: string;
 }
-
-const STONE_QUALITIES = ["AAA", "AA", "A", "B", "C"];
 
 export default function AnalysisPage() {
   const { toast } = useToast();
@@ -722,55 +719,37 @@ export default function AnalysisPage() {
                         stone.stoneType.toLowerCase().includes("pırlanta");
       
       if (isDiamond) {
+        if (field === "caratSize" || field === "stoneType") {
+          const autoDiscount = getDiscountRateForCarat(caratSize);
+          if (autoDiscount !== undefined && stone.discountPercent === undefined) {
+            stone.discountPercent = autoDiscount;
+          }
+        }
+        
         const isSmallStone = caratSize >= 0.001 && caratSize <= 0.1;
         
-        if (isSmallStone) {
+        if (!isSmallStone && stone.shape && stone.color && stone.clarity) {
+          const rapPrice = await lookupRapaportPrice(stone.shape, caratSize, stone.color, stone.clarity);
+          if (rapPrice) {
+            stone.rapaportPrice = rapPrice;
+            const discountPercent = stone.discountPercent || 0;
+            const discountedPrice = rapPrice * (1 - discountPercent / 100);
+            stone.totalStoneCost = discountedPrice * caratSize * quantity;
+          } else {
+            const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
+            stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
+            stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
+          }
+        } else {
           stone.rapaportPrice = undefined;
-          stone.discountPercent = undefined;
-          
           const gemstone = gemstonePrices?.find(g => 
-            g.stoneType === stone.stoneType &&
-            g.minCarat && g.maxCarat &&
-            caratSize >= parseFloat(g.minCarat) &&
-            caratSize <= parseFloat(g.maxCarat) &&
-            g.quality === stone.quality
-          ) || gemstonePrices?.find(g => 
             g.stoneType === stone.stoneType &&
             g.minCarat && g.maxCarat &&
             caratSize >= parseFloat(g.minCarat) &&
             caratSize <= parseFloat(g.maxCarat)
           ) || gemstonePrices?.find(g => g.stoneType === stone.stoneType);
-          
           stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
           stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
-        } else {
-          if (field === "caratSize" || field === "stoneType") {
-            const autoDiscount = getDiscountRateForCarat(caratSize);
-            if (autoDiscount !== undefined && stone.discountPercent === undefined) {
-              stone.discountPercent = autoDiscount;
-            }
-          }
-          
-          if (stone.shape && stone.color && stone.clarity) {
-            const rapPrice = await lookupRapaportPrice(stone.shape, caratSize, stone.color, stone.clarity);
-            if (rapPrice) {
-              stone.rapaportPrice = rapPrice;
-              const discountPercent = stone.discountPercent || 0;
-              const discountedPrice = rapPrice * (1 - discountPercent / 100);
-              stone.pricePerCarat = discountedPrice;
-              stone.totalStoneCost = discountedPrice * caratSize * quantity;
-            } else {
-              stone.rapaportPrice = undefined;
-              const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
-              stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
-              stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
-            }
-          } else {
-            stone.rapaportPrice = undefined;
-            const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
-            stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
-            stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
-          }
         }
       } else {
         const gemstone = gemstonePrices?.find(g => 
@@ -820,7 +799,6 @@ export default function AnalysisPage() {
       clarity: s.clarity || undefined,
       rapaportPrice: s.rapaportPrice ? parseFloat(s.rapaportPrice) : undefined,
       discountPercent: s.discountPercent ? parseFloat(s.discountPercent) : undefined,
-      quality: s.quality || undefined,
     })) || []);
     setShowForm(true);
   };
@@ -1139,8 +1117,6 @@ export default function AnalysisPage() {
                         const isDiamond = stone.stoneType?.toLowerCase().includes("elmas") || 
                                           stone.stoneType?.toLowerCase().includes("diamond") ||
                                           stone.stoneType?.toLowerCase().includes("pırlanta");
-                        const caratValue = parseFloat(stone.caratSize) || 0;
-                        const isSmallStone = isDiamond && caratValue >= 0.001 && caratValue <= 0.1;
                         
                         return (
                           <div key={index} className="p-4 border rounded-lg bg-background space-y-3">
@@ -1255,27 +1231,6 @@ export default function AnalysisPage() {
                                     />
                                   </div>
                                 </>
-                              )}
-                              
-                              {isSmallStone && (
-                                <div className="w-20">
-                                  <Label className="text-xs text-muted-foreground">Kalite</Label>
-                                  <Select 
-                                    value={stone.quality || ""} 
-                                    onValueChange={(v) => updateStone(index, "quality", v)}
-                                  >
-                                    <SelectTrigger data-testid={`select-stone-quality-${index}`}>
-                                      <SelectValue placeholder="Seçin" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {STONE_QUALITIES.map((quality) => (
-                                        <SelectItem key={quality} value={quality}>
-                                          {quality}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
                               )}
                               
                               <div className="flex-1 flex items-end justify-end gap-4">
