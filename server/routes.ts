@@ -901,7 +901,7 @@ export async function registerRoutes(
       const settings = await storage.updateAdminSettings({
         ownerEmail: ownerEmail || null,
         ccEmails: ccEmails || [],
-        ...(emailApiKey ? { emailApiKey } : {}),
+        ...(emailApiKey ? { globalEmailApiKey: emailApiKey } : {}),
       });
       res.json(settings);
     } catch (error) {
@@ -1008,7 +1008,7 @@ export async function registerRoutes(
       }
 
       const adminSettings = await storage.getAdminSettings();
-      const apiKey = adminSettings?.emailApiKey || process.env.RESEND_API_KEY;
+      const apiKey = adminSettings?.globalEmailApiKey || process.env.RESEND_API_KEY;
       if (!apiKey) {
         return res.status(400).json({ error: "Email API anahtarı ayarlanmamış. Lütfen Admin panelinden API anahtarını girin." });
       }

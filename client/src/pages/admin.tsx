@@ -555,7 +555,7 @@ export default function AdminPage() {
                 id="emailApiKey"
                 type="password"
                 data-testid="input-admin-email-api-key"
-                placeholder={settings?.emailApiKey ? "••••••••••••" : "re_xxxxxxxxxxxx"}
+                placeholder={settings?.globalEmailApiKey ? "••••••••••••" : "re_xxxxxxxxxxxx"}
                 value={emailApiKey}
                 onChange={(e) => setEmailApiKey(e.target.value)}
               />
@@ -565,7 +565,7 @@ export default function AdminPage() {
                   resend.com
                 </a>{" "}
                 adresinden ücretsiz hesap oluşturabilirsiniz.
-                {settings?.emailApiKey && (
+                {settings?.globalEmailApiKey && (
                   <span className="ml-2 text-green-600 dark:text-green-400">
                     (Mevcut anahtar kayıtlı - değiştirmek için yeni anahtar girin)
                   </span>

@@ -20,7 +20,7 @@ export const adminSettings = pgTable("admin_settings", {
   id: serial("id").primaryKey(),
   ownerEmail: text("owner_email"),
   ccEmails: text("cc_emails").array(),
-  emailApiKey: text("email_api_key"),
+  globalEmailApiKey: text("global_email_api_key"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
