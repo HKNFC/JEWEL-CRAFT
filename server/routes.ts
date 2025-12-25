@@ -28,11 +28,6 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
-  // Health check endpoint for deployment
-  app.get("/api/health", (_req, res) => {
-    res.status(200).json({ status: "ok", timestamp: Date.now() });
-  });
-
   app.post("/api/auth/register", async (req, res) => {
     try {
       const registerSchema = insertUserSchema.extend({
@@ -161,6 +156,21 @@ export async function registerRoutes(
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Şifre değiştirilirken bir hata oluştu" });
+    }
+  });
+
+  app.patch("/api/auth/email-api-key", requireAuth, async (req, res) => {
+    try {
+      const { emailApiKey } = req.body;
+      const user = await storage.updateUser(req.session.userId!, { emailApiKey });
+      if (!user) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      }
+      const { passwordHash: _, ...safeUser } = user;
+      res.json(safeUser);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "API anahtarı güncellenirken bir hata oluştu" });
     }
   });
 
@@ -902,11 +912,10 @@ export async function registerRoutes(
 
   app.patch("/api/admin/settings", requireAdmin, async (req, res) => {
     try {
-      const { ownerEmail, ccEmails, emailApiKey } = req.body;
+      const { ownerEmail, ccEmails } = req.body;
       const settings = await storage.updateAdminSettings({
         ownerEmail: ownerEmail || null,
         ccEmails: ccEmails || [],
-        ...(emailApiKey ? { globalEmailApiKey: emailApiKey } : {}),
       });
       res.json(settings);
     } catch (error) {
@@ -1012,11 +1021,12 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Kullanıcı bulunamadı" });
       }
 
-      const adminSettings = await storage.getAdminSettings();
-      const apiKey = adminSettings?.globalEmailApiKey || process.env.RESEND_API_KEY;
+      const apiKey = user.emailApiKey || process.env.RESEND_API_KEY;
       if (!apiKey) {
-        return res.status(400).json({ error: "Email API anahtarı ayarlanmamış. Lütfen Admin panelinden API anahtarını girin." });
+        return res.status(400).json({ error: "Email API anahtarı ayarlanmamış. Lütfen Ayarlar sayfasından API anahtarınızı girin." });
       }
+
+      const adminSettings = await storage.getAdminSettings();
       const ccList: string[] = [];
       if (adminSettings?.ownerEmail) {
         ccList.push(adminSettings.ownerEmail);

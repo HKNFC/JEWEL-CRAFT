@@ -7,10 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, User, Lock } from "lucide-react";
+import { Loader2, User, Lock, Mail } from "lucide-react";
 
 export default function SettingsPage() {
-  const { user, updateProfile, updateProfilePending, changePassword, changePasswordPending } = useAuth();
+  const { user, updateProfile, updateProfilePending, changePassword, changePasswordPending, updateEmailApiKey, updateEmailApiKeyPending } = useAuth();
   const { toast } = useToast();
 
   const [profileForm, setProfileForm] = useState({
@@ -26,6 +26,8 @@ export default function SettingsPage() {
     newPassword: "",
     confirmPassword: "",
   });
+
+  const [emailApiKey, setEmailApiKey] = useState(user?.emailApiKey || "");
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +72,20 @@ export default function SettingsPage() {
       toast({
         title: "Hata",
         description: error?.message || "Şifre değiştirilemedi",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEmailApiKeySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await updateEmailApiKey({ emailApiKey });
+      toast({ title: "Email API anahtarı güncellendi" });
+    } catch (error: any) {
+      toast({
+        title: "Hata",
+        description: error?.message || "API anahtarı güncellenemedi",
         variant: "destructive",
       });
     }
@@ -206,6 +222,40 @@ export default function SettingsPage() {
             <Button type="submit" disabled={changePasswordPending} data-testid="button-change-password">
               {changePasswordPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Şifreyi Değiştir
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            <CardTitle>Email API Ayarları</CardTitle>
+          </div>
+          <CardDescription>
+            E-posta göndermek için Resend API anahtarınızı girin. 
+            <a href="https://resend.com" target="_blank" rel="noopener noreferrer" className="text-primary ml-1">
+              resend.com
+            </a> adresinden ücretsiz hesap oluşturabilirsiniz.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleEmailApiKeySubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="emailApiKey">Resend API Anahtarı</Label>
+              <Input
+                id="emailApiKey"
+                type="password"
+                data-testid="input-email-api-key"
+                placeholder="re_xxxxxxxxxxxx"
+                value={emailApiKey}
+                onChange={(e) => setEmailApiKey(e.target.value)}
+              />
+            </div>
+            <Button type="submit" disabled={updateEmailApiKeyPending} data-testid="button-save-api-key">
+              {updateEmailApiKeyPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Kaydet
             </Button>
           </form>
         </CardContent>
