@@ -722,43 +722,55 @@ export default function AnalysisPage() {
                         stone.stoneType.toLowerCase().includes("pırlanta");
       
       if (isDiamond) {
-        if (field === "caratSize" || field === "stoneType") {
-          const autoDiscount = getDiscountRateForCarat(caratSize);
-          if (autoDiscount !== undefined && stone.discountPercent === undefined) {
-            stone.discountPercent = autoDiscount;
-          }
-        }
-        
         const isSmallStone = caratSize >= 0.001 && caratSize <= 0.1;
         
-        if (!isSmallStone && stone.shape && stone.color && stone.clarity) {
-          const rapPrice = await lookupRapaportPrice(stone.shape, caratSize, stone.color, stone.clarity);
-          if (rapPrice) {
-            stone.rapaportPrice = rapPrice;
-            const discountPercent = stone.discountPercent || 0;
-            const discountedPrice = rapPrice * (1 - discountPercent / 100);
-            stone.totalStoneCost = discountedPrice * caratSize * quantity;
-          } else {
-            const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
-            stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
-            stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
-          }
-        } else {
+        if (isSmallStone) {
           stone.rapaportPrice = undefined;
+          stone.discountPercent = undefined;
+          
           const gemstone = gemstonePrices?.find(g => 
             g.stoneType === stone.stoneType &&
             g.minCarat && g.maxCarat &&
             caratSize >= parseFloat(g.minCarat) &&
             caratSize <= parseFloat(g.maxCarat) &&
-            (!stone.quality || g.quality === stone.quality)
+            g.quality === stone.quality
           ) || gemstonePrices?.find(g => 
             g.stoneType === stone.stoneType &&
             g.minCarat && g.maxCarat &&
             caratSize >= parseFloat(g.minCarat) &&
             caratSize <= parseFloat(g.maxCarat)
           ) || gemstonePrices?.find(g => g.stoneType === stone.stoneType);
+          
           stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
           stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
+        } else {
+          if (field === "caratSize" || field === "stoneType") {
+            const autoDiscount = getDiscountRateForCarat(caratSize);
+            if (autoDiscount !== undefined && stone.discountPercent === undefined) {
+              stone.discountPercent = autoDiscount;
+            }
+          }
+          
+          if (stone.shape && stone.color && stone.clarity) {
+            const rapPrice = await lookupRapaportPrice(stone.shape, caratSize, stone.color, stone.clarity);
+            if (rapPrice) {
+              stone.rapaportPrice = rapPrice;
+              const discountPercent = stone.discountPercent || 0;
+              const discountedPrice = rapPrice * (1 - discountPercent / 100);
+              stone.pricePerCarat = discountedPrice;
+              stone.totalStoneCost = discountedPrice * caratSize * quantity;
+            } else {
+              stone.rapaportPrice = undefined;
+              const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
+              stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
+              stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
+            }
+          } else {
+            stone.rapaportPrice = undefined;
+            const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
+            stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
+            stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
+          }
         }
       } else {
         const gemstone = gemstonePrices?.find(g => 
