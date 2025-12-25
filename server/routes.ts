@@ -159,21 +159,6 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/auth/email-api-key", requireAuth, async (req, res) => {
-    try {
-      const { emailApiKey } = req.body;
-      const user = await storage.updateUser(req.session.userId!, { emailApiKey });
-      if (!user) {
-        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
-      }
-      const { passwordHash: _, ...safeUser } = user;
-      res.json(safeUser);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "API anahtarı güncellenirken bir hata oluştu" });
-    }
-  });
-
   app.get("/api/manufacturers", async (req, res) => {
     try {
       const manufacturers = await storage.getManufacturers();

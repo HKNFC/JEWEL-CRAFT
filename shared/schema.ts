@@ -12,7 +12,6 @@ export const users = pgTable("users", {
   email: text("email"),
   gender: text("gender").default("male"),
   isAdmin: boolean("is_admin").default(false),
-  emailApiKey: text("email_api_key"),
   emailFromAddress: text("email_from_address"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
