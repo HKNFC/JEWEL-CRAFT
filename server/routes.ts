@@ -28,6 +28,11 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
+  // Health check endpoint for deployment
+  app.get("/api/health", (_req, res) => {
+    res.status(200).json({ status: "ok", timestamp: Date.now() });
+  });
+
   app.post("/api/auth/register", async (req, res) => {
     try {
       const registerSchema = insertUserSchema.extend({
