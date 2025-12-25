@@ -4,10 +4,13 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import MemoryStore from "memorystore";
+import connectPgSimple from "connect-pg-simple";
+import pg from "pg";
 
 const app = express();
 const httpServer = createServer(app);
 const MemoryStoreSession = MemoryStore(session);
+const PgSession = connectPgSimple(session);
 
 app.set("trust proxy", 1);
 
@@ -34,19 +37,28 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
+// Use PostgreSQL session store in production for autoscale compatibility
+const sessionStore = process.env.NODE_ENV === "production" && process.env.DATABASE_URL
+  ? new PgSession({
+      pool: new pg.Pool({ connectionString: process.env.DATABASE_URL }),
+      tableName: "session",
+      createTableIfMissing: true,
+    })
+  : new MemoryStoreSession({
+      checkPeriod: 86400000,
+    });
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "jewelry-cost-analysis-secret-key",
     resave: false,
     saveUninitialized: false,
-    store: new MemoryStoreSession({
-      checkPeriod: 86400000,
-    }),
+    store: sessionStore,
     cookie: {
-      secure: "auto",
+      secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: "none",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     },
     proxy: true,
   })
