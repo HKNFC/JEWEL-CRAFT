@@ -912,10 +912,11 @@ export async function registerRoutes(
 
   app.patch("/api/admin/settings", requireAdmin, async (req, res) => {
     try {
-      const { ownerEmail, ccEmails } = req.body;
+      const { ownerEmail, ccEmails, emailApiKey } = req.body;
       const settings = await storage.updateAdminSettings({
         ownerEmail: ownerEmail || null,
         ccEmails: ccEmails || [],
+        ...(emailApiKey ? { emailApiKey } : {}),
       });
       res.json(settings);
     } catch (error) {
@@ -1021,12 +1022,11 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Kullanıcı bulunamadı" });
       }
 
-      const apiKey = user.emailApiKey || process.env.RESEND_API_KEY;
-      if (!apiKey) {
-        return res.status(400).json({ error: "Email API anahtarı ayarlanmamış. Lütfen Ayarlar sayfasından API anahtarınızı girin." });
-      }
-
       const adminSettings = await storage.getAdminSettings();
+      const apiKey = adminSettings?.emailApiKey || process.env.RESEND_API_KEY;
+      if (!apiKey) {
+        return res.status(400).json({ error: "Email API anahtarı ayarlanmamış. Lütfen Admin panelinden API anahtarını girin." });
+      }
       const ccList: string[] = [];
       if (adminSettings?.ownerEmail) {
         ccList.push(adminSettings.ownerEmail);

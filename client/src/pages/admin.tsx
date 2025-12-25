@@ -51,6 +51,7 @@ export default function AdminPage() {
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ccEmails, setCcEmails] = useState<string[]>([]);
   const [newCcEmail, setNewCcEmail] = useState("");
+  const [emailApiKey, setEmailApiKey] = useState("");
 
   const [newUserDialogOpen, setNewUserDialogOpen] = useState(false);
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
@@ -71,11 +72,12 @@ export default function AdminPage() {
     if (settings) {
       setOwnerEmail(settings.ownerEmail || "");
       setCcEmails(settings.ccEmails || []);
+      setEmailApiKey("");
     }
   }, [settings]);
 
   const updateSettingsMutation = useMutation({
-    mutationFn: async (data: { ownerEmail: string; ccEmails: string[] }) => {
+    mutationFn: async (data: { ownerEmail: string; ccEmails: string[]; emailApiKey?: string }) => {
       const res = await apiRequest("PATCH", "/api/admin/settings", data);
       return res.json();
     },
@@ -199,7 +201,11 @@ export default function AdminPage() {
 
   const handleSubmitSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    updateSettingsMutation.mutate({ ownerEmail, ccEmails });
+    updateSettingsMutation.mutate({ 
+      ownerEmail, 
+      ccEmails,
+      ...(emailApiKey ? { emailApiKey } : {})
+    });
   };
 
   const handleCreateUser = (e: React.FormEvent) => {
@@ -538,6 +544,33 @@ export default function AdminPage() {
                   Henüz CC listesinde e-posta yok
                 </p>
               )}
+            </div>
+
+            <div className="space-y-2 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <Key className="h-4 w-4" />
+                <Label htmlFor="emailApiKey">Resend API Anahtarı</Label>
+              </div>
+              <Input
+                id="emailApiKey"
+                type="password"
+                data-testid="input-admin-email-api-key"
+                placeholder={settings?.emailApiKey ? "••••••••••••" : "re_xxxxxxxxxxxx"}
+                value={emailApiKey}
+                onChange={(e) => setEmailApiKey(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                E-posta göndermek için Resend API anahtarı gerekli.{" "}
+                <a href="https://resend.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                  resend.com
+                </a>{" "}
+                adresinden ücretsiz hesap oluşturabilirsiniz.
+                {settings?.emailApiKey && (
+                  <span className="ml-2 text-green-600 dark:text-green-400">
+                    (Mevcut anahtar kayıtlı - değiştirmek için yeni anahtar girin)
+                  </span>
+                )}
+              </p>
             </div>
 
             <div className="pt-4">
