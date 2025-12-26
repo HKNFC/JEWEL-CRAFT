@@ -56,7 +56,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import type { AnalysisRecordWithRelations, Manufacturer, StoneSettingRate, GemstonePriceList, Batch, BatchWithRelations, RapaportDiscountRate, LaborPrice, PolishPrice, PolishFirePrice } from "@shared/schema";
+import type { AnalysisRecordWithRelations, Manufacturer, StoneSettingRate, GemstonePriceList, Batch, BatchWithRelations, RapaportDiscountRate, LaborPrice, PolishPrice } from "@shared/schema";
 
 const analysisFormSchema = z.object({
   manufacturerId: z.string().min(1, "Üretici seçiniz"),
@@ -193,10 +193,6 @@ export default function AnalysisPage() {
 
   const { data: polishPrices } = useQuery<PolishPrice[]>({
     queryKey: ["/api/polish-prices"],
-  });
-
-  const { data: polishFirePrices } = useQuery<PolishFirePrice[]>({
-    queryKey: ["/api/polish-fire-prices"],
   });
 
   const createBatchMutation = useMutation({
@@ -528,6 +524,7 @@ export default function AnalysisPage() {
     const totalGrams = safeNumber(parseFloat(form.watch("totalGrams") || "0"));
     const goldPurity = form.watch("goldPurity") || "24";
     const purityFactor = GOLD_PURITIES.find(p => p.value === goldPurity)?.factor || 1;
+    const firePercentage = safeNumber(fireValue[0]);
     const productType = form.watch("productType");
     const certificateAmount = safeNumber(parseFloat(form.watch("certificateAmount") || "0"));
     const manufacturerPrice = safeNumber(parseFloat(form.watch("manufacturerPrice") || "0"));
@@ -535,7 +532,7 @@ export default function AnalysisPage() {
     const goldPriceUsd = goldCurrency === "USD" 
       ? safeNumber(goldPricePerGram) 
       : safeNumber(goldPricePerGram / usdTryRate);
-    const rawMaterialCost = safeNumber(totalGrams * goldPriceUsd * purityFactor);
+    const rawMaterialCost = safeNumber(totalGrams * (1 + firePercentage / 100) * goldPriceUsd * purityFactor);
 
     // İşçilik = (toplam gram × işçilik çarpanı) × altın gram fiyatı USD
     let laborCost = 0;
@@ -552,24 +549,16 @@ export default function AnalysisPage() {
       polishCost = safeNumber(parseFloat(polishPrice.priceUsd) || 0);
     }
 
-    // Cila Firesi = ürün cinsine göre sabit fiyat (USD)
-    let polishFireCost = 0;
-    const polishFirePrice = polishFirePrices?.find(pf => pf.productType === productType);
-    if (polishFirePrice) {
-      polishFireCost = safeNumber(parseFloat(polishFirePrice.fireRateUsd) || 0);
-    }
-
     const totalSettingCost = safeNumber(stones.reduce((sum, s) => sum + (s.settingCost || 0), 0));
     const totalStoneCostValue = safeNumber(stones.reduce((sum, s) => sum + (s.totalStoneCost || 0), 0));
 
-    const totalCost = safeNumber(rawMaterialCost + laborCost + polishCost + polishFireCost + certificateAmount + totalSettingCost + totalStoneCostValue);
+    const totalCost = safeNumber(rawMaterialCost + laborCost + polishCost + certificateAmount + totalSettingCost + totalStoneCostValue);
     const profitLoss = safeNumber(manufacturerPrice - totalCost);
 
     return {
       rawMaterialCost,
       laborCost,
       polishCost,
-      polishFireCost,
       certificateAmount,
       totalSettingCost,
       totalStoneCost: totalStoneCostValue,
@@ -681,7 +670,7 @@ export default function AnalysisPage() {
     const formData = { 
       ...data,
       batchId: selectedBatch ? parseInt(selectedBatch) : undefined,
-      firePercentage: costs.polishFireCost.toFixed(2),
+      firePercentage: fireValue[0].toString(),
       polishAmount: costs.polishCost.toFixed(2),
       rawMaterialCost: costs.rawMaterialCost.toFixed(2),
       laborCost: costs.laborCost.toFixed(2),
@@ -1105,19 +1094,15 @@ export default function AnalysisPage() {
                     </div>
                   </FormItem>
                   <FormItem>
-                    <FormLabel>Cila Firesi (Otomatik)</FormLabel>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-9 px-3 py-2 bg-muted rounded-md text-sm font-mono" data-testid="display-polish-fire">
-                        ${costs.polishFireCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {form.watch("productType") ? (
-                          polishFirePrices?.find(pf => pf.productType === form.watch("productType")) ? 
-                            `${getProductTypeLabel(form.watch("productType"))} icin tanimli` :
-                            "Fiyat tanimli degil"
-                        ) : "Urun cinsi secin"}
-                      </span>
-                    </div>
+                    <FormLabel>Fire: {fireValue[0]}%</FormLabel>
+                    <Slider
+                      value={fireValue}
+                      onValueChange={setFireValue}
+                      max={20}
+                      step={0.5}
+                      className="py-4"
+                      data-testid="slider-fire-percentage"
+                    />
                   </FormItem>
                   <FormItem>
                     <FormLabel>Cila (Otomatik)</FormLabel>
@@ -1506,8 +1491,8 @@ export default function AnalysisPage() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Cila Firesi</p>
-                  <p className="font-medium font-mono">${selectedRecord.firePercentage || "0"}</p>
+                  <p className="text-sm text-muted-foreground">Fire</p>
+                  <p className="font-medium">{selectedRecord.firePercentage || "0"}%</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Cila</p>

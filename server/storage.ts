@@ -10,7 +10,6 @@ import {
   rapaportDiscountRates,
   laborPrices,
   polishPrices,
-  polishFirePrices,
   batches,
   adminSettings,
   type User,
@@ -36,8 +35,6 @@ import {
   type InsertLaborPrice,
   type PolishPrice,
   type InsertPolishPrice,
-  type PolishFirePrice,
-  type InsertPolishFirePrice,
   type Batch,
   type InsertBatch,
   type BatchWithRelations,
@@ -116,13 +113,6 @@ export interface IStorage {
   createPolishPrice(data: InsertPolishPrice): Promise<PolishPrice>;
   updatePolishPrice(id: number, data: Partial<InsertPolishPrice>): Promise<PolishPrice | undefined>;
   deletePolishPrice(id: number): Promise<boolean>;
-
-  getPolishFirePrices(): Promise<PolishFirePrice[]>;
-  getPolishFirePrice(id: number): Promise<PolishFirePrice | undefined>;
-  getPolishFirePriceByProductType(productType: string): Promise<PolishFirePrice | undefined>;
-  createPolishFirePrice(data: InsertPolishFirePrice): Promise<PolishFirePrice>;
-  updatePolishFirePrice(id: number, data: Partial<InsertPolishFirePrice>): Promise<PolishFirePrice | undefined>;
-  deletePolishFirePrice(id: number): Promise<boolean>;
 
   getAdminSettings(): Promise<AdminSettings | undefined>;
   updateAdminSettings(data: InsertAdminSettings): Promise<AdminSettings>;
@@ -555,35 +545,6 @@ export class DatabaseStorage implements IStorage {
 
   async deletePolishPrice(id: number): Promise<boolean> {
     const result = await db.delete(polishPrices).where(eq(polishPrices.id, id)).returning();
-    return result.length > 0;
-  }
-
-  async getPolishFirePrices(): Promise<PolishFirePrice[]> {
-    return db.select().from(polishFirePrices);
-  }
-
-  async getPolishFirePrice(id: number): Promise<PolishFirePrice | undefined> {
-    const [price] = await db.select().from(polishFirePrices).where(eq(polishFirePrices.id, id));
-    return price || undefined;
-  }
-
-  async getPolishFirePriceByProductType(productType: string): Promise<PolishFirePrice | undefined> {
-    const [price] = await db.select().from(polishFirePrices).where(eq(polishFirePrices.productType, productType));
-    return price || undefined;
-  }
-
-  async createPolishFirePrice(data: InsertPolishFirePrice): Promise<PolishFirePrice> {
-    const [price] = await db.insert(polishFirePrices).values(data).returning();
-    return price;
-  }
-
-  async updatePolishFirePrice(id: number, data: Partial<InsertPolishFirePrice>): Promise<PolishFirePrice | undefined> {
-    const [price] = await db.update(polishFirePrices).set(data).where(eq(polishFirePrices.id, id)).returning();
-    return price || undefined;
-  }
-
-  async deletePolishFirePrice(id: number): Promise<boolean> {
-    const result = await db.delete(polishFirePrices).where(eq(polishFirePrices.id, id)).returning();
     return result.length > 0;
   }
 

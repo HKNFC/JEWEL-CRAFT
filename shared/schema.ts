@@ -136,12 +136,6 @@ export const polishPrices = pgTable("polish_prices", {
   priceUsd: decimal("price_usd", { precision: 10, scale: 2 }).notNull(),
 });
 
-export const polishFirePrices = pgTable("polish_fire_prices", {
-  id: serial("id").primaryKey(),
-  productType: text("product_type").notNull(),
-  fireRateUsd: decimal("fire_rate_usd", { precision: 10, scale: 2 }).notNull(),
-});
-
 export const batches = pgTable("batches", {
   id: serial("id").primaryKey(),
   manufacturerId: integer("manufacturer_id").references(() => manufacturers.id).notNull(),
@@ -192,7 +186,6 @@ export const insertRapaportPriceSchema = createInsertSchema(rapaportPrices).omit
 export const insertRapaportDiscountRateSchema = createInsertSchema(rapaportDiscountRates).omit({ id: true });
 export const insertLaborPriceSchema = createInsertSchema(laborPrices).omit({ id: true });
 export const insertPolishPriceSchema = createInsertSchema(polishPrices).omit({ id: true });
-export const insertPolishFirePriceSchema = createInsertSchema(polishFirePrices).omit({ id: true });
 export const insertBatchSchema = createInsertSchema(batches).omit({ id: true, createdAt: true });
 
 export type User = typeof users.$inferSelect;
@@ -230,9 +223,6 @@ export type InsertLaborPrice = z.infer<typeof insertLaborPriceSchema>;
 
 export type PolishPrice = typeof polishPrices.$inferSelect;
 export type InsertPolishPrice = z.infer<typeof insertPolishPriceSchema>;
-
-export type PolishFirePrice = typeof polishFirePrices.$inferSelect;
-export type InsertPolishFirePrice = z.infer<typeof insertPolishFirePriceSchema>;
 
 export type Batch = typeof batches.$inferSelect;
 export type InsertBatch = z.infer<typeof insertBatchSchema>;
