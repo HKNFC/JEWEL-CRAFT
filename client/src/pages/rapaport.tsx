@@ -272,29 +272,8 @@ export default function RapaportPage() {
       toast({ title: "Hata", description: "Tum alanlari doldurun", variant: "destructive" });
       return;
     }
-    
-    const shapes = newEntry.shape === "ALL" ? SHAPES : [newEntry.shape];
-    const colors = newEntry.color === "ALL" ? COLORS : [newEntry.color];
-    const clarities = newEntry.clarity === "ALL" ? CLARITIES : [newEntry.clarity];
-    
-    const entries: typeof newEntry[] = [];
-    for (const shape of shapes) {
-      for (const color of colors) {
-        for (const clarity of clarities) {
-          entries.push({
-            shape,
-            color,
-            clarity,
-            lowCarat: newEntry.lowCarat,
-            highCarat: newEntry.highCarat,
-            pricePerCarat: newEntry.pricePerCarat,
-          });
-        }
-      }
-    }
-    
     uploadMutation.mutate({
-      prices: entries,
+      prices: [newEntry],
       clearExisting: false,
     });
     setNewEntry({ shape: "", lowCarat: "", highCarat: "", color: "", clarity: "", pricePerCarat: "" });
@@ -342,7 +321,6 @@ export default function RapaportPage() {
                         <SelectValue placeholder="Secin" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="ALL">Tümü</SelectItem>
                         {SHAPES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -354,7 +332,6 @@ export default function RapaportPage() {
                         <SelectValue placeholder="Secin" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="ALL">Tümü</SelectItem>
                         {COLORS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -368,7 +345,6 @@ export default function RapaportPage() {
                         <SelectValue placeholder="Secin" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="ALL">Tümü</SelectItem>
                         {CLARITIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>
                     </Select>
