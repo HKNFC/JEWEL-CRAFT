@@ -369,7 +369,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async findRapaportPrice(shape: string, carat: number, color: string, clarity: string): Promise<RapaportPrice | undefined> {
-    const caratStr = carat.toString();
+    const caratStr = carat.toFixed(2);
     const [price] = await db.select().from(rapaportPrices).where(
       and(
         eq(rapaportPrices.shape, shape),
