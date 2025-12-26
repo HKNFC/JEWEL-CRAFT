@@ -789,12 +789,15 @@ export default function AnalysisPage() {
             stone.rapaportPrice = undefined;
           }
         } else {
+          // Large diamond (> 0.1 carat) - use Rapaport pricing
           if (field === "caratSize" || field === "stoneType") {
             const autoDiscount = getDiscountRateForCarat(caratSize);
             if (autoDiscount !== undefined && stone.discountPercent === undefined) {
               stone.discountPercent = autoDiscount;
             }
+            // Clear small diamond fields when switching to large diamond
             stone.stoneQuality = undefined;
+            stone.pricePerCarat = undefined;
           }
           
           if (stone.shape && stone.color && stone.clarity) {
@@ -805,14 +808,14 @@ export default function AnalysisPage() {
               const discountedPrice = rapPrice * (1 - discountPercent / 100);
               stone.totalStoneCost = discountedPrice * caratSize * quantity;
             } else {
-              const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
-              stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
-              stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
+              // Rapaport price not found - set to 0, user needs to check Rapaport data
+              stone.rapaportPrice = undefined;
+              stone.totalStoneCost = 0;
             }
           } else {
-            const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
-            stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
-            stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
+            // Waiting for user to select shape/color/clarity for Rapaport lookup
+            stone.rapaportPrice = undefined;
+            stone.totalStoneCost = 0;
           }
         }
       } else {
