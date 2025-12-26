@@ -628,12 +628,11 @@ export default function AnalysisPage() {
     const calcType = settingRate.calculationType || "perPiece";
     
     if (calcType === "perCarat") {
-      // Karat basına: fiyat × toplam karat (karat × adet)
-      const totalCarat = caratSize * quantity;
-      return price * totalCarat;
+      // Karat mıhlama: taş karatı × taş adedi × karat mıhlama fiyatı
+      return caratSize * quantity * price;
     } else {
-      // Adet basına: fiyat × adet
-      return price * quantity;
+      // Adet mıhlama: taş adedi × adet mıhlama fiyatı
+      return quantity * price;
     }
   };
 
