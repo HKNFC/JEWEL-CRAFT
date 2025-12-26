@@ -38,7 +38,7 @@ The application has seven main tables:
 4. **gemstone_price_lists** - Gemstone types with quality grades and per-carat pricing
 5. **analysis_records** - Main cost analysis records with gold labor, fire percentage, polish, and certificate costs
 6. **analysis_stones** - Individual stones within an analysis record (one-to-many relationship)
-7. **polishing_prices** - Polishing prices per gram by product type (auto-fills in analysis form)
+7. **polishing_prices** - Fixed polishing prices by product type (auto-fills in analysis form when product type is selected)
 
 ### Authentication System
 - **Session-based authentication** using express-session with memorystore

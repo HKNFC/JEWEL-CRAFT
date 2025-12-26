@@ -68,7 +68,7 @@ const PRODUCT_TYPES: Record<string, string> = {
 
 const polishingPriceFormSchema = z.object({
   productType: z.string().min(1, "Urun cinsi secin"),
-  pricePerGram: z.string().min(1, "Gram basi fiyat gerekli"),
+  price: z.string().min(1, "Fiyat gerekli"),
 });
 
 type PolishingPriceFormValues = z.infer<typeof polishingPriceFormSchema>;
@@ -86,7 +86,7 @@ export default function PolishingPricesPage() {
     resolver: zodResolver(polishingPriceFormSchema),
     defaultValues: {
       productType: "",
-      pricePerGram: "",
+      price: "",
     },
   });
 
@@ -139,18 +139,18 @@ export default function PolishingPricesPage() {
     }
   };
 
-  const openEditDialog = (price: PolishingPrice) => {
-    setEditingId(price.id);
+  const openEditDialog = (polishingPrice: PolishingPrice) => {
+    setEditingId(polishingPrice.id);
     form.reset({
-      productType: price.productType,
-      pricePerGram: price.pricePerGram,
+      productType: polishingPrice.productType,
+      price: polishingPrice.price,
     });
     setDialogOpen(true);
   };
 
   const openNewDialog = () => {
     setEditingId(null);
-    form.reset({ productType: "", pricePerGram: "" });
+    form.reset({ productType: "", price: "" });
     setDialogOpen(true);
   };
 
@@ -190,7 +190,7 @@ export default function PolishingPricesPage() {
         <CardHeader>
           <CardTitle>Cila Fiyat Listesi</CardTitle>
           <CardDescription>
-            Her urun cinsi icin gram basi cila fiyatini belirleyin
+            Her urun cinsi icin sabit cila fiyatini belirleyin
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -199,7 +199,7 @@ export default function PolishingPricesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Urun Cinsi</TableHead>
-                  <TableHead className="text-right">Fiyat ($/gram)</TableHead>
+                  <TableHead className="text-right">Fiyat ($)</TableHead>
                   <TableHead className="w-[100px]">Islemler</TableHead>
                 </TableRow>
               </TableHeader>
@@ -210,7 +210,7 @@ export default function PolishingPricesPage() {
                       {PRODUCT_TYPES[price.productType] || price.productType}
                     </TableCell>
                     <TableCell className="text-right font-mono">
-                      ${parseFloat(price.pricePerGram).toFixed(2)}
+                      ${parseFloat(price.price).toFixed(2)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
@@ -303,10 +303,10 @@ export default function PolishingPricesPage() {
               />
               <FormField
                 control={form.control}
-                name="pricePerGram"
+                name="price"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Gram Basi Fiyat ($)</FormLabel>
+                    <FormLabel>Cila Fiyati ($)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -314,7 +314,7 @@ export default function PolishingPricesPage() {
                         min="0"
                         placeholder="0.00"
                         {...field}
-                        data-testid="input-price-per-gram"
+                        data-testid="input-price"
                       />
                     </FormControl>
                     <FormMessage />

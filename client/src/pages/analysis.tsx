@@ -626,9 +626,9 @@ export default function AnalysisPage() {
     
     const polishingPrice = polishingPrices.find(pp => pp.productType === watchedProductType);
     if (polishingPrice) {
-      const pricePerGram = parseFloat(polishingPrice.pricePerGram) || 0;
-      const calculatedPolish = grams * pricePerGram;
-      form.setValue("polishAmount", calculatedPolish.toFixed(2));
+      // Sabit fiyat - gram ile çarpılmaz
+      const fixedPrice = parseFloat(polishingPrice.price) || 0;
+      form.setValue("polishAmount", fixedPrice.toFixed(2));
       setPolishEnabled(true);
     }
   }, [watchedProductType, watchedTotalGrams, polishingPrices, form]);

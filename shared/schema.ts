@@ -130,7 +130,7 @@ export const laborPrices = pgTable("labor_prices", {
 export const polishingPrices = pgTable("polishing_prices", {
   id: serial("id").primaryKey(),
   productType: text("product_type").notNull(),
-  pricePerGram: decimal("price_per_gram", { precision: 10, scale: 2 }).notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
 });
 
 export const batches = pgTable("batches", {
