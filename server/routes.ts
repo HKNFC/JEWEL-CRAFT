@@ -890,6 +890,76 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/polish-fire-prices", async (req, res) => {
+    try {
+      const prices = await storage.getPolishFirePrices();
+      res.json(prices);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch polish fire prices" });
+    }
+  });
+
+  app.get("/api/polish-fire-prices/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const price = await storage.getPolishFirePrice(id);
+      if (!price) {
+        return res.status(404).json({ error: "Polish fire price not found" });
+      }
+      res.json(price);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch polish fire price" });
+    }
+  });
+
+  app.get("/api/polish-fire-prices/by-type/:productType", async (req, res) => {
+    try {
+      const price = await storage.getPolishFirePriceByProductType(req.params.productType);
+      res.json(price || null);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch polish fire price" });
+    }
+  });
+
+  app.post("/api/polish-fire-prices", async (req, res) => {
+    try {
+      const { productType, fireRateUsd } = req.body;
+      if (!productType || fireRateUsd === undefined) {
+        return res.status(400).json({ error: "Product type and fire rate USD are required" });
+      }
+      const price = await storage.createPolishFirePrice({ productType, fireRateUsd });
+      res.status(201).json(price);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create polish fire price" });
+    }
+  });
+
+  app.patch("/api/polish-fire-prices/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const price = await storage.updatePolishFirePrice(id, req.body);
+      if (!price) {
+        return res.status(404).json({ error: "Polish fire price not found" });
+      }
+      res.json(price);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update polish fire price" });
+    }
+  });
+
+  app.delete("/api/polish-fire-prices/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deletePolishFirePrice(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Polish fire price not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete polish fire price" });
+    }
+  });
+
   const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
     if (!req.session.userId) {
       return res.status(401).json({ error: "Oturum açmanız gerekiyor" });

@@ -13,6 +13,7 @@ import ManufacturersPage from "@/pages/manufacturers";
 import StoneRatesPage from "@/pages/stone-rates";
 import LaborPricesPage from "@/pages/labor-prices";
 import PolishPricesPage from "@/pages/polish-prices";
+import PolishFirePricesPage from "@/pages/polish-fire-prices";
 import GemstonePricesPage from "@/pages/gemstone-prices";
 import AnalysisPage from "@/pages/analysis";
 import ExchangeRatesPage from "@/pages/exchange-rates";
@@ -65,6 +66,7 @@ function AuthenticatedLayout() {
               <Route path="/stone-rates" component={StoneRatesPage} />
               <Route path="/labor-prices" component={LaborPricesPage} />
               <Route path="/polish-prices" component={PolishPricesPage} />
+              <Route path="/polish-fire-prices" component={PolishFirePricesPage} />
               <Route path="/gemstone-prices" component={GemstonePricesPage} />
               <Route path="/analysis" component={AnalysisPage} />
               <Route path="/exchange-rates" component={ExchangeRatesPage} />
