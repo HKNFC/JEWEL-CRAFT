@@ -61,6 +61,15 @@ Two calculation methods available:
 - Configured per carat range in `/stone-rates` page
 - Separate rates for diamond and colored stones
 
+**Diamond Pricing System:**
+Two pricing sources based on carat size:
+1. **Small Diamonds (0.01 - 0.1 ct)**: Uses gemstone price list with quality selection (AAA, AA, A, B, C)
+   - Quality selector appears when adding a diamond in this range
+   - Price fetched from "Pırlanta" entries in gemstone price list based on quality and carat range
+2. **Large Diamonds (> 0.1 ct)**: Uses Rapaport price list with discount rate
+   - Requires shape, color, clarity selection
+   - Applies configured discount percentage
+
 ### Authentication System
 - **Session-based authentication** using express-session with memorystore
 - **Password hashing** with bcrypt (10 rounds)
