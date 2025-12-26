@@ -595,7 +595,13 @@ export default function AnalysisPage() {
       (r.stoneCategory === category || (!r.stoneCategory && category === "diamond")) &&
       caratSize >= parseFloat(r.minCarat) && caratSize <= parseFloat(r.maxCarat)
     );
-    return settingRate ? parseFloat(settingRate.pricePerStone) * quantity : 0;
+    
+    if (!settingRate) return 0;
+    
+    if (settingRate.calculationType === "per_carat" && settingRate.pricePerCarat) {
+      return parseFloat(settingRate.pricePerCarat) * caratSize * quantity;
+    }
+    return parseFloat(settingRate.pricePerStone) * quantity;
   };
 
   const getDiscountRateForCarat = (caratSize: number): number | undefined => {
