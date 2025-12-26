@@ -748,29 +748,70 @@ export default function AnalysisPage() {
                         stone.stoneType.toLowerCase().includes("pırlanta");
       
       if (isDiamond) {
-        if (field === "caratSize" || field === "stoneType") {
-          const autoDiscount = getDiscountRateForCarat(caratSize);
-          if (autoDiscount !== undefined && stone.discountPercent === undefined) {
-            stone.discountPercent = autoDiscount;
-          }
-        }
+        // 0.001 - 0.100 ct arası: Taş listesindeki Pırlanta fiyatlarını kaliteye göre kullan
+        // 0.100 ct üstü: Rapaport listesini indirim oranlarıyla kullan
+        const useGemstoneList = caratSize <= 0.100;
         
-        if (stone.shape && stone.color && stone.clarity) {
-          const rapPrice = await lookupRapaportPrice(stone.shape, caratSize, stone.color, stone.clarity);
-          if (rapPrice) {
-            stone.rapaportPrice = rapPrice;
-            const discountPercent = stone.discountPercent || 0;
-            const discountedPrice = rapPrice * (1 - discountPercent / 100);
-            stone.totalStoneCost = discountedPrice * caratSize * quantity;
+        if (useGemstoneList) {
+          // Küçük pırlantalar için taş fiyat listesini kullan (kaliteye göre)
+          const pırlantaPrices = gemstonePrices?.filter(g => 
+            g.stoneType.toLowerCase() === "pırlanta" || 
+            g.stoneType.toLowerCase().includes("pırlanta")
+          );
+          
+          // Kaliteye ve karat aralığına göre eşleştir
+          let matchedPrice = pırlantaPrices?.find(g => {
+            const qualityMatch = !stone.clarity || !g.quality || g.quality === stone.clarity;
+            const minCarat = g.minCarat ? parseFloat(g.minCarat) : 0;
+            const maxCarat = g.maxCarat ? parseFloat(g.maxCarat) : 999;
+            const caratMatch = caratSize >= minCarat && caratSize <= maxCarat;
+            return qualityMatch && caratMatch;
+          });
+          
+          // Kalite eşleşmezse sadece karat aralığına göre bul
+          if (!matchedPrice) {
+            matchedPrice = pırlantaPrices?.find(g => {
+              const minCarat = g.minCarat ? parseFloat(g.minCarat) : 0;
+              const maxCarat = g.maxCarat ? parseFloat(g.maxCarat) : 999;
+              return caratSize >= minCarat && caratSize <= maxCarat;
+            });
+          }
+          
+          // Hiç eşleşme yoksa herhangi bir Pırlanta fiyatı kullan
+          if (!matchedPrice && pırlantaPrices && pırlantaPrices.length > 0) {
+            matchedPrice = pırlantaPrices[0];
+          }
+          
+          stone.pricePerCarat = matchedPrice ? parseFloat(matchedPrice.pricePerCarat) : 0;
+          stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
+          stone.rapaportPrice = undefined; // Rapaport kullanılmıyor
+          stone.discountPercent = undefined;
+        } else {
+          // Büyük pırlantalar için Rapaport listesini kullan
+          if (field === "caratSize" || field === "stoneType") {
+            const autoDiscount = getDiscountRateForCarat(caratSize);
+            if (autoDiscount !== undefined && stone.discountPercent === undefined) {
+              stone.discountPercent = autoDiscount;
+            }
+          }
+          
+          if (stone.shape && stone.color && stone.clarity) {
+            const rapPrice = await lookupRapaportPrice(stone.shape, caratSize, stone.color, stone.clarity);
+            if (rapPrice) {
+              stone.rapaportPrice = rapPrice;
+              const discountPercent = stone.discountPercent || 0;
+              const discountedPrice = rapPrice * (1 - discountPercent / 100);
+              stone.totalStoneCost = discountedPrice * caratSize * quantity;
+            } else {
+              const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
+              stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
+              stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
+            }
           } else {
             const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
             stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
             stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
           }
-        } else {
-          const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
-          stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
-          stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
         }
       } else {
         const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
