@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from "react";
+import { useState, useEffect, Fragment, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -56,7 +56,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import type { AnalysisRecordWithRelations, Manufacturer, StoneSettingRate, GemstonePriceList, Batch, BatchWithRelations, RapaportDiscountRate, LaborPrice } from "@shared/schema";
+import type { AnalysisRecordWithRelations, Manufacturer, StoneSettingRate, GemstonePriceList, Batch, BatchWithRelations, RapaportDiscountRate, LaborPrice, PolishingPrice } from "@shared/schema";
 
 const analysisFormSchema = z.object({
   manufacturerId: z.string().min(1, "Üretici seçiniz"),
@@ -189,6 +189,10 @@ export default function AnalysisPage() {
 
   const { data: laborPrices } = useQuery<LaborPrice[]>({
     queryKey: ["/api/labor-prices"],
+  });
+
+  const { data: polishingPrices } = useQuery<PolishingPrice[]>({
+    queryKey: ["/api/polishing-prices"],
   });
 
   const createBatchMutation = useMutation({
@@ -600,6 +604,34 @@ export default function AnalysisPage() {
       form.setValue("goldLaborType", "dollar");
     }
   }, [watchedProductType, watchedTotalGrams, laborPrices, exchangeRates, form]);
+
+  // Ürün cinsine göre otomatik cila fiyatı getir (sadece ürün cinsi değiştiğinde)
+  const prevProductTypeRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!polishingPrices || !watchedProductType || !watchedTotalGrams) {
+      return;
+    }
+    
+    // Sadece ürün cinsi değiştiğinde cila fiyatını otomatik hesapla
+    // Bu sayede kullanıcı manuel değişiklik yaptığında üzerine yazılmaz
+    if (prevProductTypeRef.current === watchedProductType) {
+      return;
+    }
+    prevProductTypeRef.current = watchedProductType;
+    
+    const grams = Number(watchedTotalGrams);
+    if (isNaN(grams) || grams <= 0) {
+      return;
+    }
+    
+    const polishingPrice = polishingPrices.find(pp => pp.productType === watchedProductType);
+    if (polishingPrice) {
+      const pricePerGram = parseFloat(polishingPrice.pricePerGram) || 0;
+      const calculatedPolish = grams * pricePerGram;
+      form.setValue("polishAmount", calculatedPolish.toFixed(2));
+      setPolishEnabled(true);
+    }
+  }, [watchedProductType, watchedTotalGrams, polishingPrices, form]);
 
   const lookupRapaportPrice = async (shape: string, carat: number, color: string, clarity: string): Promise<number | null> => {
     try {
