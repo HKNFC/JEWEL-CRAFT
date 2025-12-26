@@ -31,13 +31,14 @@ Preferred communication style: Simple, everyday language.
 - **Schema Location**: `shared/schema.ts` (shared between frontend and backend)
 
 ### Database Schema
-The application has six main tables:
+The application has seven main tables:
 1. **users** - User accounts with company info, credentials, and email API settings
 2. **manufacturers** - Jewelry manufacturers with contact info
 3. **stone_setting_rates** - Pricing tiers based on carat ranges
 4. **gemstone_price_lists** - Gemstone types with quality grades and per-carat pricing
 5. **analysis_records** - Main cost analysis records with gold labor, fire percentage, polish, and certificate costs
 6. **analysis_stones** - Individual stones within an analysis record (one-to-many relationship)
+7. **polishing_prices** - Polishing prices per gram by product type (auto-fills in analysis form)
 
 ### Authentication System
 - **Session-based authentication** using express-session with memorystore
