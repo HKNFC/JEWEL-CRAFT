@@ -34,7 +34,7 @@ Preferred communication style: Simple, everyday language.
 The application has the following main tables:
 1. **users** - User accounts with company info, credentials, and email API settings
 2. **manufacturers** - Jewelry manufacturers with contact info
-3. **stone_setting_rates** - Pricing tiers based on carat ranges
+3. **stone_setting_rates** - Pricing tiers based on carat ranges with dual calculation methods
 4. **gemstone_price_lists** - Gemstone types with quality grades and per-carat pricing
 5. **analysis_records** - Main cost analysis records with gold labor, fire percentage, polish, and certificate costs
 6. **analysis_stones** - Individual stones within an analysis record (one-to-many relationship)
@@ -53,6 +53,13 @@ Both labor and polish costs are automatically calculated based on product type:
 - Fixed USD amount per product type
 - Configured in `/polish-prices` page
 - Polish price stored in `polish_prices.price_usd`
+
+**Stone Setting (Mıhlama) Calculation:**
+Two calculation methods available:
+1. **Per Stone Count (Taş Adedine Göre)**: Maliyet = Fiyat × Taş Adedi
+2. **Per Total Carat (Toplam Karata Göre)**: Maliyet = Fiyat × Karat × Taş Adedi
+- Configured per carat range in `/stone-rates` page
+- Separate rates for diamond and colored stones
 
 ### Authentication System
 - **Session-based authentication** using express-session with memorystore
