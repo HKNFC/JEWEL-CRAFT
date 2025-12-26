@@ -120,9 +120,12 @@ interface StoneEntry {
   shape?: string;
   color?: string;
   clarity?: string;
+  quality?: string; // Küçük pırlantalar için kalite (AAA, AA, A, B, C)
   rapaportPrice?: number;
   discountPercent?: number;
 }
+
+const STONE_QUALITIES = ["AAA", "AA", "A", "B", "C"];
 
 export default function AnalysisPage() {
   const { toast } = useToast();
@@ -759,9 +762,9 @@ export default function AnalysisPage() {
             g.stoneType.toLowerCase().includes("pırlanta")
           );
           
-          // Kaliteye ve karat aralığına göre eşleştir
+          // Kaliteye ve karat aralığına göre eşleştir (quality alanını kullan)
           let matchedPrice = pırlantaPrices?.find(g => {
-            const qualityMatch = !stone.clarity || !g.quality || g.quality === stone.clarity;
+            const qualityMatch = !stone.quality || !g.quality || g.quality === stone.quality;
             const minCarat = g.minCarat ? parseFloat(g.minCarat) : 0;
             const maxCarat = g.maxCarat ? parseFloat(g.maxCarat) : 999;
             const caratMatch = caratSize >= minCarat && caratSize <= maxCarat;
@@ -786,6 +789,9 @@ export default function AnalysisPage() {
           stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
           stone.rapaportPrice = undefined; // Rapaport kullanılmıyor
           stone.discountPercent = undefined;
+          stone.shape = undefined;
+          stone.color = undefined;
+          stone.clarity = undefined;
         } else {
           // Büyük pırlantalar için Rapaport listesini kullan
           if (field === "caratSize" || field === "stoneType") {
@@ -1249,77 +1255,107 @@ export default function AnalysisPage() {
                                 />
                               </div>
                               
-                              {isDiamond && (
-                                <>
-                                  <div className="w-28">
-                                    <Label className="text-xs text-muted-foreground">Kesim</Label>
-                                    <Select 
-                                      value={stone.shape || ""} 
-                                      onValueChange={(v) => updateStone(index, "shape", v)}
-                                    >
-                                      <SelectTrigger data-testid={`select-stone-shape-${index}`}>
-                                        <SelectValue placeholder="Seçin" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {DIAMOND_SHAPES.map((shape) => (
-                                          <SelectItem key={shape} value={shape}>
-                                            {shape}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                  <div className="w-20">
-                                    <Label className="text-xs text-muted-foreground">Renk</Label>
-                                    <Select 
-                                      value={stone.color || ""} 
-                                      onValueChange={(v) => updateStone(index, "color", v)}
-                                    >
-                                      <SelectTrigger data-testid={`select-stone-color-${index}`}>
-                                        <SelectValue placeholder="Seçin" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {DIAMOND_COLORS.map((color) => (
-                                          <SelectItem key={color} value={color}>
-                                            {color}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                  <div className="w-20">
-                                    <Label className="text-xs text-muted-foreground">Berraklık</Label>
-                                    <Select 
-                                      value={stone.clarity || ""} 
-                                      onValueChange={(v) => updateStone(index, "clarity", v)}
-                                    >
-                                      <SelectTrigger data-testid={`select-stone-clarity-${index}`}>
-                                        <SelectValue placeholder="Seçin" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {DIAMOND_CLARITIES.map((clarity) => (
-                                          <SelectItem key={clarity} value={clarity}>
-                                            {clarity}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                  <div className="w-20">
-                                    <Label className="text-xs text-muted-foreground">İskonto %</Label>
-                                    <Input 
-                                      type="number"
-                                      step="0.1"
-                                      min="0"
-                                      max="100"
-                                      placeholder="0"
-                                      value={stone.discountPercent || ""}
-                                      onChange={(e) => updateStone(index, "discountPercent", e.target.value)}
-                                      data-testid={`input-stone-discount-${index}`}
-                                    />
-                                  </div>
-                                </>
-                              )}
+                              {isDiamond && (() => {
+                                const caratSize = parseFloat(stone.caratSize) || 0;
+                                const isSmallDiamond = caratSize > 0 && caratSize <= 0.100;
+                                
+                                if (isSmallDiamond) {
+                                  // Küçük pırlantalar için sadece Kalite göster
+                                  return (
+                                    <div className="w-24">
+                                      <Label className="text-xs text-muted-foreground">Kalite</Label>
+                                      <Select 
+                                        value={stone.quality || ""} 
+                                        onValueChange={(v) => updateStone(index, "quality", v)}
+                                      >
+                                        <SelectTrigger data-testid={`select-stone-quality-${index}`}>
+                                          <SelectValue placeholder="Seçin" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {STONE_QUALITIES.map((q) => (
+                                            <SelectItem key={q} value={q}>
+                                              {q}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  );
+                                }
+                                
+                                // Büyük pırlantalar için Rapaport alanları göster
+                                return (
+                                  <>
+                                    <div className="w-28">
+                                      <Label className="text-xs text-muted-foreground">Kesim</Label>
+                                      <Select 
+                                        value={stone.shape || ""} 
+                                        onValueChange={(v) => updateStone(index, "shape", v)}
+                                      >
+                                        <SelectTrigger data-testid={`select-stone-shape-${index}`}>
+                                          <SelectValue placeholder="Seçin" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {DIAMOND_SHAPES.map((shape) => (
+                                            <SelectItem key={shape} value={shape}>
+                                              {shape}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="w-20">
+                                      <Label className="text-xs text-muted-foreground">Renk</Label>
+                                      <Select 
+                                        value={stone.color || ""} 
+                                        onValueChange={(v) => updateStone(index, "color", v)}
+                                      >
+                                        <SelectTrigger data-testid={`select-stone-color-${index}`}>
+                                          <SelectValue placeholder="Seçin" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {DIAMOND_COLORS.map((color) => (
+                                            <SelectItem key={color} value={color}>
+                                              {color}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="w-20">
+                                      <Label className="text-xs text-muted-foreground">Berraklık</Label>
+                                      <Select 
+                                        value={stone.clarity || ""} 
+                                        onValueChange={(v) => updateStone(index, "clarity", v)}
+                                      >
+                                        <SelectTrigger data-testid={`select-stone-clarity-${index}`}>
+                                          <SelectValue placeholder="Seçin" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {DIAMOND_CLARITIES.map((clarity) => (
+                                            <SelectItem key={clarity} value={clarity}>
+                                              {clarity}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="w-20">
+                                      <Label className="text-xs text-muted-foreground">İskonto %</Label>
+                                      <Input 
+                                        type="number"
+                                        step="0.1"
+                                        min="0"
+                                        max="100"
+                                        placeholder="0"
+                                        value={stone.discountPercent || ""}
+                                        onChange={(e) => updateStone(index, "discountPercent", e.target.value)}
+                                        data-testid={`input-stone-discount-${index}`}
+                                      />
+                                    </div>
+                                  </>
+                                );
+                              })()}
                               
                               <div className="flex-1 flex items-end justify-end gap-4">
                                 <div className="text-right">
