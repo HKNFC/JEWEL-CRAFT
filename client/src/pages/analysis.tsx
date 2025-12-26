@@ -621,7 +621,20 @@ export default function AnalysisPage() {
       (r.stoneCategory === category || (!r.stoneCategory && category === "diamond")) &&
       caratSize >= parseFloat(r.minCarat) && caratSize <= parseFloat(r.maxCarat)
     );
-    return settingRate ? parseFloat(settingRate.pricePerStone) * quantity : 0;
+    
+    if (!settingRate) return 0;
+    
+    const price = parseFloat(settingRate.pricePerStone);
+    const calcType = settingRate.calculationType || "perPiece";
+    
+    if (calcType === "perCarat") {
+      // Karat basına: fiyat × toplam karat (karat × adet)
+      const totalCarat = caratSize * quantity;
+      return price * totalCarat;
+    } else {
+      // Adet basına: fiyat × adet
+      return price * quantity;
+    }
   };
 
   const getDiscountRateForCarat = (caratSize: number): number | undefined => {
