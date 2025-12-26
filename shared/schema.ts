@@ -59,7 +59,6 @@ export const analysisRecords = pgTable("analysis_records", {
   productCode: text("product_code").notNull(),
   productType: text("product_type"),
   totalGrams: decimal("total_grams", { precision: 10, scale: 3 }).notNull(),
-  userId: integer("user_id").references(() => users.id).notNull(),
   goldPurity: text("gold_purity").default("24"),
   goldLaborCost: decimal("gold_labor_cost", { precision: 10, scale: 2 }),
   goldLaborType: text("gold_labor_type").default("dollar"),
@@ -127,12 +126,6 @@ export const laborPrices = pgTable("labor_prices", {
   pricePerGram: decimal("price_per_gram", { precision: 10, scale: 2 }).notNull(),
 });
 
-export const polishPrices = pgTable("polish_prices", {
-  id: serial("id").primaryKey(),
-  productType: text("product_type").notNull(),
-  priceUsd: decimal("price_usd", { precision: 10, scale: 2 }).notNull(),
-});
-
 export const batches = pgTable("batches", {
   id: serial("id").primaryKey(),
   manufacturerId: integer("manufacturer_id").references(() => manufacturers.id).notNull(),
@@ -182,7 +175,6 @@ export const insertExchangeRateSchema = createInsertSchema(exchangeRates).omit({
 export const insertRapaportPriceSchema = createInsertSchema(rapaportPrices).omit({ id: true, uploadedAt: true });
 export const insertRapaportDiscountRateSchema = createInsertSchema(rapaportDiscountRates).omit({ id: true });
 export const insertLaborPriceSchema = createInsertSchema(laborPrices).omit({ id: true });
-export const insertPolishPriceSchema = createInsertSchema(polishPrices).omit({ id: true });
 export const insertBatchSchema = createInsertSchema(batches).omit({ id: true, createdAt: true });
 
 export type User = typeof users.$inferSelect;
@@ -217,9 +209,6 @@ export type InsertRapaportDiscountRate = z.infer<typeof insertRapaportDiscountRa
 
 export type LaborPrice = typeof laborPrices.$inferSelect;
 export type InsertLaborPrice = z.infer<typeof insertLaborPriceSchema>;
-
-export type PolishPrice = typeof polishPrices.$inferSelect;
-export type InsertPolishPrice = z.infer<typeof insertPolishPriceSchema>;
 
 export type Batch = typeof batches.$inferSelect;
 export type InsertBatch = z.infer<typeof insertBatchSchema>;

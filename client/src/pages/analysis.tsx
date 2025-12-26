@@ -56,7 +56,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import type { AnalysisRecordWithRelations, Manufacturer, StoneSettingRate, GemstonePriceList, Batch, BatchWithRelations, RapaportDiscountRate, LaborPrice, PolishPrice } from "@shared/schema";
+import type { AnalysisRecordWithRelations, Manufacturer, StoneSettingRate, GemstonePriceList, Batch, BatchWithRelations, RapaportDiscountRate, LaborPrice } from "@shared/schema";
 
 const analysisFormSchema = z.object({
   manufacturerId: z.string().min(1, "Üretici seçiniz"),
@@ -66,14 +66,14 @@ const analysisFormSchema = z.object({
   totalGrams: z.string().min(1, "Toplam gram gerekli"),
   goldPurity: z.string().default("24"),
     firePercentage: z.string().optional(),
-    certificateAmount: z.string().optional(),
+  polishAmount: z.string().optional(),
+  certificateAmount: z.string().optional(),
   manufacturerPrice: z.string().optional(),
 });
 
 const PRODUCT_TYPES: Record<string, string> = {
   ring: "Yüzük",
   necklace: "Kolye",
-  pendant: "Kolye Ucu",
   bracelet: "Bileklik",
   earring: "Küpe",
   brooch: "Broş",
@@ -136,7 +136,8 @@ export default function AnalysisPage() {
   const [selectedRecord, setSelectedRecord] = useState<AnalysisRecordWithRelations | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [fireValue, setFireValue] = useState([0]);
-    const [selectedBatch, setSelectedBatch] = useState<string>("");
+  const [polishEnabled, setPolishEnabled] = useState(false);
+  const [selectedBatch, setSelectedBatch] = useState<string>("");
 
   interface ExchangeRates {
     usdTry: string;
@@ -183,10 +184,6 @@ export default function AnalysisPage() {
 
   const { data: laborPrices } = useQuery<LaborPrice[]>({
     queryKey: ["/api/labor-prices"],
-  });
-
-  const { data: polishPrices } = useQuery<PolishPrice[]>({
-    queryKey: ["/api/polish-prices"],
   });
 
   const createBatchMutation = useMutation({
@@ -507,6 +504,7 @@ export default function AnalysisPage() {
       totalGrams: "",
       goldPurity: "24",
       firePercentage: "0",
+      polishAmount: "",
       certificateAmount: "",
       manufacturerPrice: "",
     },
@@ -520,6 +518,7 @@ export default function AnalysisPage() {
     const purityFactor = GOLD_PURITIES.find(p => p.value === goldPurity)?.factor || 1;
     const firePercentage = safeNumber(fireValue[0]);
     const productType = form.watch("productType");
+    const polishAmount = polishEnabled ? safeNumber(parseFloat(form.watch("polishAmount") || "0")) : 0;
     const certificateAmount = safeNumber(parseFloat(form.watch("certificateAmount") || "0"));
     const manufacturerPrice = safeNumber(parseFloat(form.watch("manufacturerPrice") || "0"));
 
@@ -535,24 +534,17 @@ export default function AnalysisPage() {
       const laborMultiplier = parseFloat(laborPrice.pricePerGram) || 0;
       laborCost = safeNumber((totalGrams * laborMultiplier) * goldPriceUsd);
     }
-
-    // Cila = ürün cinsine göre sabit fiyat (USD)
-    let polishCost = 0;
-    const polishPrice = polishPrices?.find(pp => pp.productType === productType);
-    if (polishPrice) {
-      polishCost = safeNumber(parseFloat(polishPrice.priceUsd) || 0);
-    }
+    laborCost += safeNumber(polishAmount);
 
     const totalSettingCost = safeNumber(stones.reduce((sum, s) => sum + (s.settingCost || 0), 0));
     const totalStoneCostValue = safeNumber(stones.reduce((sum, s) => sum + (s.totalStoneCost || 0), 0));
 
-    const totalCost = safeNumber(rawMaterialCost + laborCost + polishCost + certificateAmount + totalSettingCost + totalStoneCostValue);
+    const totalCost = safeNumber(rawMaterialCost + laborCost + certificateAmount + totalSettingCost + totalStoneCostValue);
     const profitLoss = safeNumber(manufacturerPrice - totalCost);
 
     return {
       rawMaterialCost,
       laborCost,
-      polishCost,
       certificateAmount,
       totalSettingCost,
       totalStoneCost: totalStoneCostValue,
@@ -652,6 +644,7 @@ export default function AnalysisPage() {
     form.reset();
     setStones([]);
     setFireValue([0]);
+    setPolishEnabled(false);
   };
 
   const onSubmit = (data: AnalysisFormValues) => {
@@ -659,7 +652,6 @@ export default function AnalysisPage() {
       ...data,
       batchId: selectedBatch ? parseInt(selectedBatch) : undefined,
       firePercentage: fireValue[0].toString(),
-      polishAmount: costs.polishCost.toFixed(2),
       rawMaterialCost: costs.rawMaterialCost.toFixed(2),
       laborCost: costs.laborCost.toFixed(2),
       totalSettingCost: costs.totalSettingCost.toFixed(2),
@@ -761,10 +753,12 @@ export default function AnalysisPage() {
       totalGrams: record.totalGrams,
       goldPurity: record.goldPurity || "24",
       firePercentage: record.firePercentage || "0",
+      polishAmount: record.polishAmount || "",
       certificateAmount: record.certificateAmount || "",
       manufacturerPrice: record.manufacturerPrice || "",
     });
     setFireValue([parseFloat(record.firePercentage || "0")]);
+    setPolishEnabled(!!record.polishAmount && parseFloat(record.polishAmount) > 0);
     setStones(record.stones?.map(s => ({
       stoneType: s.stoneType,
       caratSize: s.caratSize,
@@ -1020,18 +1014,24 @@ export default function AnalysisPage() {
                     />
                   </FormItem>
                   <FormItem>
-                    <FormLabel>Cila (Otomatik)</FormLabel>
+                    <FormLabel>Cila</FormLabel>
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 h-9 px-3 py-2 bg-muted rounded-md text-sm font-mono" data-testid="display-polish">
-                        ${costs.polishCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {form.watch("productType") ? (
-                          polishPrices?.find(pp => pp.productType === form.watch("productType")) ? 
-                            `${getProductTypeLabel(form.watch("productType"))} icin tanimli` :
-                            "Fiyat tanimli degil"
-                        ) : "Urun cinsi secin"}
-                      </span>
+                      <Switch 
+                        checked={polishEnabled} 
+                        onCheckedChange={setPolishEnabled}
+                        data-testid="switch-polish"
+                      />
+                      {polishEnabled && (
+                        <Input 
+                          type="number"
+                          step="0.01"
+                          placeholder="$"
+                          value={form.watch("polishAmount") || ""}
+                          onChange={(e) => form.setValue("polishAmount", e.target.value)}
+                          className="w-20"
+                          data-testid="input-polish"
+                        />
+                      )}
                     </div>
                   </FormItem>
                   <FormField

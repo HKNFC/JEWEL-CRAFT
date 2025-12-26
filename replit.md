@@ -31,28 +31,13 @@ Preferred communication style: Simple, everyday language.
 - **Schema Location**: `shared/schema.ts` (shared between frontend and backend)
 
 ### Database Schema
-The application has the following main tables:
+The application has six main tables:
 1. **users** - User accounts with company info, credentials, and email API settings
 2. **manufacturers** - Jewelry manufacturers with contact info
 3. **stone_setting_rates** - Pricing tiers based on carat ranges
 4. **gemstone_price_lists** - Gemstone types with quality grades and per-carat pricing
 5. **analysis_records** - Main cost analysis records with gold labor, fire percentage, polish, and certificate costs
 6. **analysis_stones** - Individual stones within an analysis record (one-to-many relationship)
-7. **labor_prices** - Product type-based labor multipliers for automatic labor cost calculation
-8. **polish_prices** - Product type-based fixed polish prices (USD) for automatic polish cost calculation
-
-### Product-Type Based Pricing System
-Both labor and polish costs are automatically calculated based on product type:
-
-**Labor Calculation:**
-- Formula: (Total Grams x Labor Multiplier) x Gold Price USD
-- Configured per product type in `/labor-prices` page
-- Labor multiplier stored in `labor_prices.price_per_gram`
-
-**Polish Calculation:**
-- Fixed USD amount per product type
-- Configured in `/polish-prices` page
-- Polish price stored in `polish_prices.price_usd`
 
 ### Authentication System
 - **Session-based authentication** using express-session with memorystore
@@ -86,8 +71,6 @@ All routes prefixed with `/api/`:
 - `/stone-setting-rates` - CRUD for setting rate tiers
 - `/gemstone-prices` - CRUD for gemstone price lists
 - `/analysis-records` - CRUD for analysis records with nested stones
-- `/labor-prices` - CRUD for product type-based labor multipliers
-- `/polish-prices` - CRUD for product type-based polish prices
 - `/send-batch-report` - POST endpoint to send batch reports via email (uses user's Resend API key)
 
 ### Build System

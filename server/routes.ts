@@ -383,10 +383,8 @@ export async function registerRoutes(
     try {
       const { stones, ...recordData } = req.body;
       const toNullIfEmpty = (val: any) => (val === "" || val === undefined) ? null : val;
-      const userId = (req.session as any).userId;
       const parsed = insertAnalysisRecordSchema.safeParse({
         ...recordData,
-        userId: userId,
         manufacturerId: recordData.manufacturerId ? parseInt(recordData.manufacturerId) : null,
         goldPurity: recordData.goldPurity || "24",
         goldLaborCost: toNullIfEmpty(recordData.goldLaborCost),
@@ -817,76 +815,6 @@ export async function registerRoutes(
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete labor price" });
-    }
-  });
-
-  app.get("/api/polish-prices", async (req, res) => {
-    try {
-      const prices = await storage.getPolishPrices();
-      res.json(prices);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch polish prices" });
-    }
-  });
-
-  app.get("/api/polish-prices/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const price = await storage.getPolishPrice(id);
-      if (!price) {
-        return res.status(404).json({ error: "Polish price not found" });
-      }
-      res.json(price);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch polish price" });
-    }
-  });
-
-  app.get("/api/polish-prices/by-type/:productType", async (req, res) => {
-    try {
-      const price = await storage.getPolishPriceByProductType(req.params.productType);
-      res.json(price || null);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch polish price" });
-    }
-  });
-
-  app.post("/api/polish-prices", async (req, res) => {
-    try {
-      const { productType, priceUsd } = req.body;
-      if (!productType || priceUsd === undefined) {
-        return res.status(400).json({ error: "Product type and price USD are required" });
-      }
-      const price = await storage.createPolishPrice({ productType, priceUsd });
-      res.status(201).json(price);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to create polish price" });
-    }
-  });
-
-  app.patch("/api/polish-prices/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const price = await storage.updatePolishPrice(id, req.body);
-      if (!price) {
-        return res.status(404).json({ error: "Polish price not found" });
-      }
-      res.json(price);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to update polish price" });
-    }
-  });
-
-  app.delete("/api/polish-prices/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const deleted = await storage.deletePolishPrice(id);
-      if (!deleted) {
-        return res.status(404).json({ error: "Polish price not found" });
-      }
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete polish price" });
     }
   });
 

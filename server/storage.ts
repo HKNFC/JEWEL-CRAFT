@@ -9,7 +9,6 @@ import {
   rapaportPrices,
   rapaportDiscountRates,
   laborPrices,
-  polishPrices,
   batches,
   adminSettings,
   type User,
@@ -33,8 +32,6 @@ import {
   type InsertRapaportDiscountRate,
   type LaborPrice,
   type InsertLaborPrice,
-  type PolishPrice,
-  type InsertPolishPrice,
   type Batch,
   type InsertBatch,
   type BatchWithRelations,
@@ -106,13 +103,6 @@ export interface IStorage {
   createLaborPrice(data: InsertLaborPrice): Promise<LaborPrice>;
   updateLaborPrice(id: number, data: Partial<InsertLaborPrice>): Promise<LaborPrice | undefined>;
   deleteLaborPrice(id: number): Promise<boolean>;
-
-  getPolishPrices(): Promise<PolishPrice[]>;
-  getPolishPrice(id: number): Promise<PolishPrice | undefined>;
-  getPolishPriceByProductType(productType: string): Promise<PolishPrice | undefined>;
-  createPolishPrice(data: InsertPolishPrice): Promise<PolishPrice>;
-  updatePolishPrice(id: number, data: Partial<InsertPolishPrice>): Promise<PolishPrice | undefined>;
-  deletePolishPrice(id: number): Promise<boolean>;
 
   getAdminSettings(): Promise<AdminSettings | undefined>;
   updateAdminSettings(data: InsertAdminSettings): Promise<AdminSettings>;
@@ -516,35 +506,6 @@ export class DatabaseStorage implements IStorage {
 
   async deleteLaborPrice(id: number): Promise<boolean> {
     const result = await db.delete(laborPrices).where(eq(laborPrices.id, id)).returning();
-    return result.length > 0;
-  }
-
-  async getPolishPrices(): Promise<PolishPrice[]> {
-    return db.select().from(polishPrices);
-  }
-
-  async getPolishPrice(id: number): Promise<PolishPrice | undefined> {
-    const [price] = await db.select().from(polishPrices).where(eq(polishPrices.id, id));
-    return price || undefined;
-  }
-
-  async getPolishPriceByProductType(productType: string): Promise<PolishPrice | undefined> {
-    const [price] = await db.select().from(polishPrices).where(eq(polishPrices.productType, productType));
-    return price || undefined;
-  }
-
-  async createPolishPrice(data: InsertPolishPrice): Promise<PolishPrice> {
-    const [price] = await db.insert(polishPrices).values(data).returning();
-    return price;
-  }
-
-  async updatePolishPrice(id: number, data: Partial<InsertPolishPrice>): Promise<PolishPrice | undefined> {
-    const [price] = await db.update(polishPrices).set(data).where(eq(polishPrices.id, id)).returning();
-    return price || undefined;
-  }
-
-  async deletePolishPrice(id: number): Promise<boolean> {
-    const result = await db.delete(polishPrices).where(eq(polishPrices.id, id)).returning();
     return result.length > 0;
   }
 
