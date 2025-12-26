@@ -118,9 +118,13 @@ interface StoneEntry {
   shape?: string;
   color?: string;
   clarity?: string;
+  stoneQuality?: string;
   rapaportPrice?: number;
   discountPercent?: number;
 }
+
+const DIAMOND_QUALITIES = ["AAA", "AA", "A", "B", "C"];
+const SMALL_DIAMOND_MAX_CARAT = 0.1;
 
 export default function AnalysisPage() {
   const { toast } = useToast();
@@ -137,6 +141,8 @@ export default function AnalysisPage() {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [fireValue, setFireValue] = useState([0]);
     const [selectedBatch, setSelectedBatch] = useState<string>("");
+  const [qualityDialogOpen, setQualityDialogOpen] = useState(false);
+  const [pendingQualityStoneIndex, setPendingQualityStoneIndex] = useState<number | null>(null);
 
   interface ExchangeRates {
     usdTry: string;
@@ -693,6 +699,56 @@ export default function AnalysisPage() {
     }]);
   };
 
+  const isSmallDiamond = (stoneType: string, caratSize: number): boolean => {
+    const isDiamond = stoneType.toLowerCase().includes("elmas") || 
+                      stoneType.toLowerCase().includes("diamond") ||
+                      stoneType.toLowerCase().includes("pırlanta");
+    return isDiamond && caratSize >= 0.01 && caratSize <= SMALL_DIAMOND_MAX_CARAT;
+  };
+
+  const getDiamondPriceFromGemstoneList = (quality: string, caratSize: number): number => {
+    const diamondPrices = gemstonePrices?.filter(g => 
+      g.stoneType.toLowerCase().includes("pırlanta") || 
+      g.stoneType.toLowerCase().includes("diamond") ||
+      g.stoneType.toLowerCase().includes("elmas")
+    ) || [];
+    
+    const matchingPrice = diamondPrices.find(g => {
+      const matchesQuality = g.quality === quality;
+      const minCarat = g.minCarat ? parseFloat(g.minCarat) : 0;
+      const maxCarat = g.maxCarat ? parseFloat(g.maxCarat) : Infinity;
+      const matchesCarat = caratSize >= minCarat && caratSize <= maxCarat;
+      return matchesQuality && matchesCarat;
+    });
+    
+    if (matchingPrice) {
+      return parseFloat(matchingPrice.pricePerCarat);
+    }
+    
+    const qualityMatch = diamondPrices.find(g => g.quality === quality);
+    return qualityMatch ? parseFloat(qualityMatch.pricePerCarat) : 0;
+  };
+
+  const handleQualitySelect = (quality: string) => {
+    if (pendingQualityStoneIndex === null) return;
+    
+    const newStones = [...stones];
+    const stone = { ...newStones[pendingQualityStoneIndex] };
+    const caratSize = parseFloat(stone.caratSize);
+    const quantity = stone.quantity || 1;
+    
+    stone.stoneQuality = quality;
+    stone.pricePerCarat = getDiamondPriceFromGemstoneList(quality, caratSize);
+    stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
+    stone.rapaportPrice = undefined;
+    stone.discountPercent = undefined;
+    
+    newStones[pendingQualityStoneIndex] = stone;
+    setStones(newStones);
+    setQualityDialogOpen(false);
+    setPendingQualityStoneIndex(null);
+  };
+
   const updateStone = async (index: number, field: keyof StoneEntry, value: string | number) => {
     const newStones = [...stones];
     const stone = { ...newStones[index] };
@@ -701,6 +757,8 @@ export default function AnalysisPage() {
       stone.quantity = typeof value === "string" ? parseInt(value) || 1 : value;
     } else if (field === "discountPercent") {
       stone.discountPercent = typeof value === "string" ? parseFloat(value) || 0 : value;
+    } else if (field === "stoneQuality") {
+      stone.stoneQuality = typeof value === "string" ? value : undefined;
     } else {
       (stone as any)[field] = value;
     }
@@ -716,29 +774,46 @@ export default function AnalysisPage() {
                         stone.stoneType.toLowerCase().includes("pırlanta");
       
       if (isDiamond) {
-        if (field === "caratSize" || field === "stoneType") {
-          const autoDiscount = getDiscountRateForCarat(caratSize);
-          if (autoDiscount !== undefined && stone.discountPercent === undefined) {
-            stone.discountPercent = autoDiscount;
+        if (isSmallDiamond(stone.stoneType, caratSize)) {
+          if ((field === "caratSize" || field === "stoneType") && !stone.stoneQuality) {
+            newStones[index] = stone;
+            setStones(newStones);
+            setPendingQualityStoneIndex(index);
+            setQualityDialogOpen(true);
+            return;
           }
-        }
-        
-        if (stone.shape && stone.color && stone.clarity) {
-          const rapPrice = await lookupRapaportPrice(stone.shape, caratSize, stone.color, stone.clarity);
-          if (rapPrice) {
-            stone.rapaportPrice = rapPrice;
-            const discountPercent = stone.discountPercent || 0;
-            const discountedPrice = rapPrice * (1 - discountPercent / 100);
-            stone.totalStoneCost = discountedPrice * caratSize * quantity;
+          
+          if (stone.stoneQuality) {
+            stone.pricePerCarat = getDiamondPriceFromGemstoneList(stone.stoneQuality, caratSize);
+            stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
+            stone.rapaportPrice = undefined;
+          }
+        } else {
+          if (field === "caratSize" || field === "stoneType") {
+            const autoDiscount = getDiscountRateForCarat(caratSize);
+            if (autoDiscount !== undefined && stone.discountPercent === undefined) {
+              stone.discountPercent = autoDiscount;
+            }
+            stone.stoneQuality = undefined;
+          }
+          
+          if (stone.shape && stone.color && stone.clarity) {
+            const rapPrice = await lookupRapaportPrice(stone.shape, caratSize, stone.color, stone.clarity);
+            if (rapPrice) {
+              stone.rapaportPrice = rapPrice;
+              const discountPercent = stone.discountPercent || 0;
+              const discountedPrice = rapPrice * (1 - discountPercent / 100);
+              stone.totalStoneCost = discountedPrice * caratSize * quantity;
+            } else {
+              const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
+              stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
+              stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
+            }
           } else {
             const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
             stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
             stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
           }
-        } else {
-          const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
-          stone.pricePerCarat = gemstone ? parseFloat(gemstone.pricePerCarat) : 0;
-          stone.totalStoneCost = stone.pricePerCarat * caratSize * quantity;
         }
       } else {
         const gemstone = gemstonePrices?.find(g => g.stoneType === stone.stoneType);
@@ -781,6 +856,7 @@ export default function AnalysisPage() {
       shape: s.shape || undefined,
       color: s.color || undefined,
       clarity: s.clarity || undefined,
+      stoneQuality: s.stoneQuality || undefined,
       rapaportPrice: s.rapaportPrice ? parseFloat(s.rapaportPrice) : undefined,
       discountPercent: s.discountPercent ? parseFloat(s.discountPercent) : undefined,
     })) || []);
@@ -1147,73 +1223,108 @@ export default function AnalysisPage() {
                               
                               {isDiamond && (
                                 <>
-                                  <div className="w-28">
-                                    <Label className="text-xs text-muted-foreground">Kesim</Label>
-                                    <Select 
-                                      value={stone.shape || ""} 
-                                      onValueChange={(v) => updateStone(index, "shape", v)}
-                                    >
-                                      <SelectTrigger data-testid={`select-stone-shape-${index}`}>
-                                        <SelectValue placeholder="Seçin" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {DIAMOND_SHAPES.map((shape) => (
-                                          <SelectItem key={shape} value={shape}>
-                                            {shape}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                  <div className="w-20">
-                                    <Label className="text-xs text-muted-foreground">Renk</Label>
-                                    <Select 
-                                      value={stone.color || ""} 
-                                      onValueChange={(v) => updateStone(index, "color", v)}
-                                    >
-                                      <SelectTrigger data-testid={`select-stone-color-${index}`}>
-                                        <SelectValue placeholder="Seçin" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {DIAMOND_COLORS.map((color) => (
-                                          <SelectItem key={color} value={color}>
-                                            {color}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                  <div className="w-20">
-                                    <Label className="text-xs text-muted-foreground">Berraklık</Label>
-                                    <Select 
-                                      value={stone.clarity || ""} 
-                                      onValueChange={(v) => updateStone(index, "clarity", v)}
-                                    >
-                                      <SelectTrigger data-testid={`select-stone-clarity-${index}`}>
-                                        <SelectValue placeholder="Seçin" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {DIAMOND_CLARITIES.map((clarity) => (
-                                          <SelectItem key={clarity} value={clarity}>
-                                            {clarity}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                  <div className="w-20">
-                                    <Label className="text-xs text-muted-foreground">İskonto %</Label>
-                                    <Input 
-                                      type="number"
-                                      step="0.1"
-                                      min="0"
-                                      max="100"
-                                      placeholder="0"
-                                      value={stone.discountPercent || ""}
-                                      onChange={(e) => updateStone(index, "discountPercent", e.target.value)}
-                                      data-testid={`input-stone-discount-${index}`}
-                                    />
-                                  </div>
+                                  {isSmallDiamond(stone.stoneType, parseFloat(stone.caratSize || "0")) ? (
+                                    <div className="w-24">
+                                      <Label className="text-xs text-muted-foreground">Kalite</Label>
+                                      <Select 
+                                        value={stone.stoneQuality || ""} 
+                                        onValueChange={(v) => {
+                                          const newStones = [...stones];
+                                          const s = { ...newStones[index] };
+                                          s.stoneQuality = v;
+                                          const caratSize = parseFloat(s.caratSize);
+                                          const quantity = s.quantity || 1;
+                                          s.pricePerCarat = getDiamondPriceFromGemstoneList(v, caratSize);
+                                          s.totalStoneCost = s.pricePerCarat * caratSize * quantity;
+                                          s.rapaportPrice = undefined;
+                                          s.discountPercent = undefined;
+                                          newStones[index] = s;
+                                          setStones(newStones);
+                                        }}
+                                      >
+                                        <SelectTrigger data-testid={`select-stone-quality-${index}`}>
+                                          <SelectValue placeholder="Seçin" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {DIAMOND_QUALITIES.map((q) => (
+                                            <SelectItem key={q} value={q}>
+                                              {q}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <div className="w-28">
+                                        <Label className="text-xs text-muted-foreground">Kesim</Label>
+                                        <Select 
+                                          value={stone.shape || ""} 
+                                          onValueChange={(v) => updateStone(index, "shape", v)}
+                                        >
+                                          <SelectTrigger data-testid={`select-stone-shape-${index}`}>
+                                            <SelectValue placeholder="Seçin" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {DIAMOND_SHAPES.map((shape) => (
+                                              <SelectItem key={shape} value={shape}>
+                                                {shape}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div className="w-20">
+                                        <Label className="text-xs text-muted-foreground">Renk</Label>
+                                        <Select 
+                                          value={stone.color || ""} 
+                                          onValueChange={(v) => updateStone(index, "color", v)}
+                                        >
+                                          <SelectTrigger data-testid={`select-stone-color-${index}`}>
+                                            <SelectValue placeholder="Seçin" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {DIAMOND_COLORS.map((color) => (
+                                              <SelectItem key={color} value={color}>
+                                                {color}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div className="w-20">
+                                        <Label className="text-xs text-muted-foreground">Berraklık</Label>
+                                        <Select 
+                                          value={stone.clarity || ""} 
+                                          onValueChange={(v) => updateStone(index, "clarity", v)}
+                                        >
+                                          <SelectTrigger data-testid={`select-stone-clarity-${index}`}>
+                                            <SelectValue placeholder="Seçin" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {DIAMOND_CLARITIES.map((clarity) => (
+                                              <SelectItem key={clarity} value={clarity}>
+                                                {clarity}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div className="w-20">
+                                        <Label className="text-xs text-muted-foreground">İskonto %</Label>
+                                        <Input 
+                                          type="number"
+                                          step="0.1"
+                                          min="0"
+                                          max="100"
+                                          placeholder="0"
+                                          value={stone.discountPercent || ""}
+                                          onChange={(e) => updateStone(index, "discountPercent", e.target.value)}
+                                          data-testid={`input-stone-discount-${index}`}
+                                        />
+                                      </div>
+                                    </>
+                                  )}
                                 </>
                               )}
                               
@@ -1499,6 +1610,36 @@ export default function AnalysisPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={qualityDialogOpen} onOpenChange={setQualityDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Pırlanta Kalitesi Seçin</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground mb-4">
+            0.01 - 0.1 karat arası pırlantalar için kalite seçiniz:
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {DIAMOND_QUALITIES.map((quality) => {
+              const price = pendingQualityStoneIndex !== null && stones[pendingQualityStoneIndex] 
+                ? getDiamondPriceFromGemstoneList(quality, parseFloat(stones[pendingQualityStoneIndex].caratSize || "0"))
+                : 0;
+              return (
+                <Button
+                  key={quality}
+                  variant="outline"
+                  onClick={() => handleQualitySelect(quality)}
+                  className="flex flex-col py-3"
+                  data-testid={`button-quality-${quality}`}
+                >
+                  <span className="font-semibold">{quality}</span>
+                  {price > 0 && <span className="text-xs text-muted-foreground">${price}/ct</span>}
+                </Button>
+              );
+            })}
+          </div>
         </DialogContent>
       </Dialog>
 
