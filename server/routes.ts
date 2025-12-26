@@ -818,6 +818,77 @@ export async function registerRoutes(
     }
   });
 
+  // Polishing Prices routes
+  app.get("/api/polishing-prices", async (req, res) => {
+    try {
+      const prices = await storage.getPolishingPrices();
+      res.json(prices);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch polishing prices" });
+    }
+  });
+
+  app.get("/api/polishing-prices/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const price = await storage.getPolishingPrice(id);
+      if (!price) {
+        return res.status(404).json({ error: "Polishing price not found" });
+      }
+      res.json(price);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch polishing price" });
+    }
+  });
+
+  app.get("/api/polishing-prices/by-type/:productType", async (req, res) => {
+    try {
+      const price = await storage.getPolishingPriceByProductType(req.params.productType);
+      res.json(price || null);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch polishing price" });
+    }
+  });
+
+  app.post("/api/polishing-prices", async (req, res) => {
+    try {
+      const { productType, pricePerGram } = req.body;
+      if (!productType || pricePerGram === undefined) {
+        return res.status(400).json({ error: "Product type and price per gram are required" });
+      }
+      const price = await storage.createPolishingPrice({ productType, pricePerGram });
+      res.status(201).json(price);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create polishing price" });
+    }
+  });
+
+  app.patch("/api/polishing-prices/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const price = await storage.updatePolishingPrice(id, req.body);
+      if (!price) {
+        return res.status(404).json({ error: "Polishing price not found" });
+      }
+      res.json(price);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update polishing price" });
+    }
+  });
+
+  app.delete("/api/polishing-prices/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deletePolishingPrice(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Polishing price not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete polishing price" });
+    }
+  });
+
   const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
     if (!req.session.userId) {
       return res.status(401).json({ error: "Oturum açmanız gerekiyor" });
