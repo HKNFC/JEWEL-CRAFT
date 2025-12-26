@@ -852,12 +852,12 @@ export async function registerRoutes(
 
   app.post("/api/polishing-prices", async (req, res) => {
     try {
-      const { productType, pricePerGram } = req.body;
-      if (!productType || pricePerGram === undefined) {
-        return res.status(400).json({ error: "Product type and price per gram are required" });
+      const { productType, price } = req.body;
+      if (!productType || price === undefined) {
+        return res.status(400).json({ error: "Product type and price are required" });
       }
-      const price = await storage.createPolishingPrice({ productType, pricePerGram });
-      res.status(201).json(price);
+      const polishingPrice = await storage.createPolishingPrice({ productType, price });
+      res.status(201).json(polishingPrice);
     } catch (error) {
       res.status(500).json({ error: "Failed to create polishing price" });
     }
