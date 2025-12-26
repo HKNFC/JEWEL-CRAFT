@@ -12,6 +12,7 @@ import Dashboard from "@/pages/dashboard";
 import ManufacturersPage from "@/pages/manufacturers";
 import StoneRatesPage from "@/pages/stone-rates";
 import LaborPricesPage from "@/pages/labor-prices";
+import PolishingPricesPage from "@/pages/polishing-prices";
 import GemstonePricesPage from "@/pages/gemstone-prices";
 import AnalysisPage from "@/pages/analysis";
 import ExchangeRatesPage from "@/pages/exchange-rates";
@@ -63,6 +64,7 @@ function AuthenticatedLayout() {
               <Route path="/manufacturers" component={ManufacturersPage} />
               <Route path="/stone-rates" component={StoneRatesPage} />
               <Route path="/labor-prices" component={LaborPricesPage} />
+              <Route path="/polishing-prices" component={PolishingPricesPage} />
               <Route path="/gemstone-prices" component={GemstonePricesPage} />
               <Route path="/analysis" component={AnalysisPage} />
               <Route path="/exchange-rates" component={ExchangeRatesPage} />
