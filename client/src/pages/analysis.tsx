@@ -922,7 +922,6 @@ export default function AnalysisPage() {
     return matchesSearch && matchesManufacturer && matchesBatch && matchesDate;
   });
 
-  const totalStoneCost = stones.reduce((sum, s) => sum + (s.totalStoneCost || 0), 0);
   const baseStoneTypes = gemstonePrices?.map(g => g.stoneType).filter((v, i, a) => a.indexOf(v) === i) || [];
   const stoneTypes = baseStoneTypes.some(t => t.toLowerCase().includes("pırlanta")) 
     ? baseStoneTypes 
@@ -1405,7 +1404,7 @@ export default function AnalysisPage() {
                         );
                       })}
                       <div className="flex justify-end p-3 bg-muted/50 rounded-lg">
-                        <span className="font-medium">Toplam Taş Maliyeti: ${totalStoneCost.toFixed(2)}</span>
+                        <span className="font-medium">Toplam Taş Maliyeti: ${costs.totalStoneCost.toFixed(2)}</span>
                       </div>
                     </div>
                   ) : (
