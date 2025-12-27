@@ -1151,17 +1151,6 @@ export default function AnalysisPage() {
                     />
                   </div>
                   <FormItem>
-                    <FormLabel>Fire: {fireValue[0]}%</FormLabel>
-                    <Slider
-                      value={fireValue}
-                      onValueChange={setFireValue}
-                      max={20}
-                      step={0.5}
-                      className="py-4"
-                      data-testid="slider-fire-percentage"
-                    />
-                  </FormItem>
-                  <FormItem>
                     <FormLabel>Cila ve Fire</FormLabel>
                     <div className="flex items-center gap-2">
                       <Switch 
@@ -1548,10 +1537,6 @@ export default function AnalysisPage() {
                     {selectedRecord.goldLaborCost || "0"} 
                     {selectedRecord.goldLaborType === "gold" ? " gr" : " $"}
                   </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Fire</p>
-                  <p className="font-medium">{selectedRecord.firePercentage || "0"}%</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Cila ve Fire</p>
