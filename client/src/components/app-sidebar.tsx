@@ -54,7 +54,7 @@ const menuItems = [
     icon: Hammer,
   },
   {
-    title: "Cila Fiyatları",
+    title: "Cila ve Fire Fiyatları",
     url: "/polishing-prices",
     icon: Sparkles,
   },

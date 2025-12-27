@@ -1162,7 +1162,7 @@ export default function AnalysisPage() {
                     />
                   </FormItem>
                   <FormItem>
-                    <FormLabel>Cila</FormLabel>
+                    <FormLabel>Cila ve Fire</FormLabel>
                     <div className="flex items-center gap-2">
                       <Switch 
                         checked={polishEnabled} 
@@ -1554,7 +1554,7 @@ export default function AnalysisPage() {
                   <p className="font-medium">{selectedRecord.firePercentage || "0"}%</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Cila</p>
+                  <p className="text-sm text-muted-foreground">Cila ve Fire</p>
                   <p className="font-medium font-mono">${selectedRecord.polishAmount || "0"}</p>
                 </div>
                 <div>
