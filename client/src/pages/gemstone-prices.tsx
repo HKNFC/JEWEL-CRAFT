@@ -67,6 +67,7 @@ const stoneTypes = [
   "Sitrin",
   "Tanzanit",
   "Morganit",
+  "Diaspore",
   "Diğer",
 ];
 
