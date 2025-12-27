@@ -141,7 +141,6 @@ export default function AnalysisPage() {
   const [selectedRecord, setSelectedRecord] = useState<AnalysisRecordWithRelations | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [fireValue, setFireValue] = useState([0]);
-  const [polishEnabled, setPolishEnabled] = useState(false);
   const [selectedBatch, setSelectedBatch] = useState<string>("");
 
   interface ExchangeRates {
@@ -530,7 +529,7 @@ export default function AnalysisPage() {
     const firePercentage = safeNumber(fireValue[0]);
     const goldLaborCost = safeNumber(parseFloat(form.watch("goldLaborCost") || "0"));
     const goldLaborType = form.watch("goldLaborType");
-    const polishAmount = polishEnabled ? safeNumber(parseFloat(form.watch("polishAmount") || "0")) : 0;
+    const polishAmount = safeNumber(parseFloat(form.watch("polishAmount") || "0"));
     const certificateAmount = safeNumber(parseFloat(form.watch("certificateAmount") || "0"));
     const manufacturerPrice = safeNumber(parseFloat(form.watch("manufacturerPrice") || "0"));
 
@@ -629,7 +628,6 @@ export default function AnalysisPage() {
       // Sabit fiyat - gram ile çarpılmaz
       const fixedPrice = parseFloat(polishingPrice.price) || 0;
       form.setValue("polishAmount", fixedPrice.toFixed(2));
-      setPolishEnabled(true);
     }
   }, [watchedProductType, watchedTotalGrams, polishingPrices, form]);
 
@@ -725,7 +723,6 @@ export default function AnalysisPage() {
     form.reset();
     setStones([]);
     setFireValue([0]);
-    setPolishEnabled(false);
   };
 
   const onSubmit = (data: AnalysisFormValues) => {
@@ -885,7 +882,6 @@ export default function AnalysisPage() {
       manufacturerPrice: record.manufacturerPrice || "",
     });
     setFireValue([parseFloat(record.firePercentage || "0")]);
-    setPolishEnabled(!!record.polishAmount && parseFloat(record.polishAmount) > 0);
     setStones(record.stones?.map(s => ({
       stoneType: s.stoneType,
       caratSize: s.caratSize,
@@ -1150,27 +1146,25 @@ export default function AnalysisPage() {
                       )}
                     />
                   </div>
-                  <FormItem>
-                    <FormLabel>Cila ve Fire</FormLabel>
-                    <div className="flex items-center gap-2">
-                      <Switch 
-                        checked={polishEnabled} 
-                        onCheckedChange={setPolishEnabled}
-                        data-testid="switch-polish"
-                      />
-                      {polishEnabled && (
-                        <Input 
-                          type="number"
-                          step="0.01"
-                          placeholder="$"
-                          value={form.watch("polishAmount") || ""}
-                          onChange={(e) => form.setValue("polishAmount", e.target.value)}
-                          className="w-20"
-                          data-testid="input-polish"
-                        />
-                      )}
-                    </div>
-                  </FormItem>
+                  <FormField
+                    control={form.control}
+                    name="polishAmount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Cila ve Fire ($)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number"
+                            step="0.01"
+                            placeholder="0" 
+                            {...field} 
+                            data-testid="input-polish"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name="certificateAmount"
