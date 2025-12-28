@@ -896,6 +896,8 @@ export default function AnalysisPage() {
       discountPercent: s.discountPercent ? parseFloat(s.discountPercent) : undefined,
     })) || []);
     setShowForm(true);
+    // Sayfanın üstüne kaydır
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const viewRecord = (record: AnalysisRecordWithRelations) => {
@@ -938,7 +940,7 @@ export default function AnalysisPage() {
 
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg">Yeni Analiz</CardTitle>
+          <CardTitle className="text-lg">{editingId ? "Analizi Düzenle" : "Yeni Analiz"}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex flex-wrap items-end gap-4">
