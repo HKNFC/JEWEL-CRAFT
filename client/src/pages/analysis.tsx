@@ -1796,7 +1796,10 @@ export default function AnalysisPage() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              onClick={() => viewRecord(record)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                viewRecord(record);
+                              }}
                               data-testid={`button-view-analysis-${record.id}`}
                             >
                               <Eye className="h-4 w-4" />
@@ -1804,7 +1807,10 @@ export default function AnalysisPage() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              onClick={() => openEditRecord(record)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEditRecord(record);
+                              }}
                               data-testid={`button-edit-analysis-${record.id}`}
                             >
                               <Pencil className="h-4 w-4" />
