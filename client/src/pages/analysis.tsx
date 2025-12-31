@@ -780,9 +780,9 @@ export default function AnalysisPage() {
                         stone.stoneType.toLowerCase().includes("pırlanta");
       
       if (isDiamond) {
-        // 0.001 - 0.100 ct arası: Taş listesindeki Pırlanta fiyatlarını kaliteye göre kullan
-        // 0.100 ct üstü: Rapaport listesini indirim oranlarıyla kullan
-        const useGemstoneList = caratSize <= 0.100;
+        // 0.001 - 0.500 ct arası: Taş listesindeki Pırlanta fiyatlarını kaliteye göre kullan
+        // 0.500 ct üstü: Rapaport listesini indirim oranlarıyla kullan
+        const useGemstoneList = caratSize <= 0.500;
         
         if (useGemstoneList) {
           // Küçük pırlantalar için taş fiyat listesini kullan (kaliteye göre)
@@ -1273,7 +1273,7 @@ export default function AnalysisPage() {
                               
                               {isDiamond && (() => {
                                 const caratSize = parseFloat(stone.caratSize) || 0;
-                                const isSmallDiamond = caratSize > 0 && caratSize <= 0.100;
+                                const isSmallDiamond = caratSize > 0 && caratSize <= 0.500;
                                 
                                 if (isSmallDiamond) {
                                   // Küçük pırlantalar için sadece Kalite göster
