@@ -99,7 +99,7 @@ const GOLD_PURITIES = [
   { value: "24", label: "24 Ayar (Saf Altın)", factor: 1.000 },
   { value: "22", label: "22 Ayar", factor: 0.9167 },
   { value: "18", label: "18 Ayar", factor: 0.825 },
-  { value: "14", label: "14 Ayar", factor: 0.6435 },
+  { value: "14", label: "14 Ayar", factor: 0.615 },
   { value: "10", label: "10 Ayar", factor: 0.4167 },
   { value: "9", label: "9 Ayar", factor: 0.375 },
 ];
