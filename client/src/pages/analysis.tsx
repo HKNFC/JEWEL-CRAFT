@@ -916,8 +916,9 @@ export default function AnalysisPage() {
       discountPercent: s.discountPercent ? parseFloat(s.discountPercent) : undefined,
     })) || []);
     setShowForm(true);
-    // Sayfanın üstüne kaydır
+    // Sayfanın üstüne kaydır ve kullanıcıya bildir
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast({ title: `${record.productCode} düzenleme modunda` });
   };
 
   const viewRecord = (record: AnalysisRecordWithRelations) => {
