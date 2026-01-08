@@ -656,7 +656,10 @@ export async function registerRoutes(
       if (!manufacturerId) {
         return res.status(400).json({ error: "manufacturerId is required" });
       }
-      const batch = await storage.createBatch(parseInt(manufacturerId));
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const batch = await storage.createBatch(parseInt(manufacturerId), req.user.id);
       res.status(201).json(batch);
     } catch (error) {
       console.error(error);

@@ -138,6 +138,7 @@ export const batches = pgTable("batches", {
   manufacturerId: integer("manufacturer_id").references(() => manufacturers.id).notNull(),
   batchNumber: integer("batch_number").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
 });
 
 export const manufacturersRelations = relations(manufacturers, ({ many }) => ({

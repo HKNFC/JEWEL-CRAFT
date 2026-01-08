@@ -89,7 +89,7 @@ export interface IStorage {
   getBatchesByManufacturer(manufacturerId: number): Promise<Batch[]>;
   getBatch(id: number): Promise<BatchWithRelations | undefined>;
   getBatchWithFullDetails(id: number): Promise<{ batch: BatchWithRelations; records: AnalysisRecordWithRelations[] } | undefined>;
-  createBatch(manufacturerId: number): Promise<Batch>;
+  createBatch(manufacturerId: number, userId: number): Promise<Batch>;
   deleteBatch(id: number): Promise<boolean>;
   getNextBatchNumber(manufacturerId: number): Promise<number>;
 
@@ -442,11 +442,12 @@ export class DatabaseStorage implements IStorage {
     return existingBatches[0].batchNumber + 1;
   }
 
-  async createBatch(manufacturerId: number): Promise<Batch> {
+  async createBatch(manufacturerId: number, userId: number): Promise<Batch> {
     const nextNumber = await this.getNextBatchNumber(manufacturerId);
     const [batch] = await db.insert(batches).values({
       manufacturerId,
       batchNumber: nextNumber,
+      userId,
     }).returning();
     return batch;
   }
