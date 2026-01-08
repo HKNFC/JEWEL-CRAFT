@@ -725,10 +725,30 @@ export default function AnalysisPage() {
     setFireValue([0]);
   };
 
-  const onSubmit = (data: AnalysisFormValues) => {
+  const onSubmit = async (data: AnalysisFormValues) => {
+    let batchIdToUse = selectedBatch ? parseInt(selectedBatch) : undefined;
+    
+    // Eğer parti seçilmemişse otomatik olarak yeni parti oluştur
+    if (!batchIdToUse && selectedManufacturer) {
+      try {
+        const response = await apiRequest("POST", "/api/batches", { 
+          manufacturerId: parseInt(selectedManufacturer) 
+        });
+        const newBatch = await response.json();
+        batchIdToUse = newBatch.id;
+        setSelectedBatch(newBatch.id.toString());
+        queryClient.invalidateQueries({ queryKey: ["/api/batches/manufacturer", selectedManufacturer] });
+        queryClient.invalidateQueries({ queryKey: ["/api/batches"] });
+        toast({ title: `Yeni parti #${newBatch.batchNumber} oluşturuldu` });
+      } catch (error) {
+        toast({ title: "Parti oluşturulurken hata", variant: "destructive" });
+        return;
+      }
+    }
+    
     const formData = { 
       ...data,
-      batchId: selectedBatch ? parseInt(selectedBatch) : undefined,
+      batchId: batchIdToUse,
       firePercentage: fireValue[0].toString(),
       rawMaterialCost: costs.rawMaterialCost.toFixed(2),
       laborCost: costs.laborCost.toFixed(2),
