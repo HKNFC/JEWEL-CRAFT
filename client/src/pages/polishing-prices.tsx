@@ -55,6 +55,7 @@ import type { PolishingPrice } from "@shared/schema";
 const PRODUCT_TYPES: Record<string, string> = {
   ring: "Yuzuk",
   necklace: "Kolye",
+  pendant: "Kolye Ucu",
   bracelet: "Bileklik",
   earring: "Kupe",
   brooch: "Bros",
