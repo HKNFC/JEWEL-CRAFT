@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { format } from "date-fns";
@@ -16,7 +17,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -24,6 +24,9 @@ import type { BatchWithRelations } from "@shared/schema";
 
 export default function BatchListPage() {
   const { toast } = useToast();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [batchToDelete, setBatchToDelete] = useState<BatchWithRelations | null>(null);
+  
   const { data: batches, isLoading } = useQuery<BatchWithRelations[]>({
     queryKey: ["/api/batches"],
   });
@@ -34,11 +37,26 @@ export default function BatchListPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/batches"] });
       queryClient.invalidateQueries({ queryKey: ["/api/analysis-records"] });
       toast({ title: "Parti silindi" });
+      setDeleteDialogOpen(false);
+      setBatchToDelete(null);
     },
     onError: () => {
       toast({ title: "Parti silinemedi", variant: "destructive" });
     },
   });
+
+  const handleDeleteClick = (e: React.MouseEvent, batch: BatchWithRelations) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setBatchToDelete(batch);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (batchToDelete) {
+      deleteMutation.mutate(batchToDelete.id);
+    }
+  };
 
   const sortedBatches = batches?.slice().sort((a, b) => {
     const dateA = new Date(a.createdAt).getTime();
@@ -161,42 +179,15 @@ export default function BatchListPage() {
                           </div>
                         )}
 
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="text-muted-foreground hover:text-destructive"
-                              onClick={(e) => e.preventDefault()}
-                              data-testid={`button-delete-batch-${batch.id}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Partiyi Sil</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                {batch.manufacturer?.name} - Parti #{batch.batchNumber} silinecek. 
-                                Bu partideki {stats.productCount} analiz kaydı da silinecektir. 
-                                Bu işlem geri alınamaz.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>İptal</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  deleteMutation.mutate(batch.id);
-                                }}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                data-testid={`button-confirm-delete-batch-${batch.id}`}
-                              >
-                                Sil
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={(e) => handleDeleteClick(e, batch)}
+                          data-testid={`button-delete-batch-${batch.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                         
                         <ChevronRight className="h-5 w-5 text-muted-foreground" />
                       </div>
@@ -208,6 +199,29 @@ export default function BatchListPage() {
           })}
         </div>
       )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Partiyi Sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              {batchToDelete?.manufacturer?.name} - Parti #{batchToDelete?.batchNumber} silinecek. 
+              Bu partideki {batchToDelete?.analysisRecords?.length || 0} analiz kaydı da silinecektir. 
+              Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete-batch"
+            >
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
