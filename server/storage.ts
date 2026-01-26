@@ -453,6 +453,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteBatch(id: number): Promise<boolean> {
+    // First get all analysis records for this batch
+    const records = await db.select().from(analysisRecords).where(eq(analysisRecords.batchId, id));
+    
+    // Delete stones for each analysis record (cascade should handle this, but explicit is safer)
+    for (const record of records) {
+      await db.delete(analysisStones).where(eq(analysisStones.analysisRecordId, record.id));
+    }
+    
+    // Delete all analysis records for this batch
+    await db.delete(analysisRecords).where(eq(analysisRecords.batchId, id));
+    
+    // Finally delete the batch
     const result = await db.delete(batches).where(eq(batches.id, id)).returning();
     return result.length > 0;
   }
