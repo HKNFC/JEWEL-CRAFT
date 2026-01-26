@@ -1,17 +1,43 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
-import { FileText, Package, TrendingUp, TrendingDown, ChevronRight, Calendar, Factory, Loader2 } from "lucide-react";
+import { FileText, Package, TrendingUp, TrendingDown, ChevronRight, Calendar, Factory, Loader2, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { BatchWithRelations } from "@shared/schema";
 
 export default function BatchListPage() {
+  const { toast } = useToast();
   const { data: batches, isLoading } = useQuery<BatchWithRelations[]>({
     queryKey: ["/api/batches"],
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/batches/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/batches"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analysis-records"] });
+      toast({ title: "Parti silindi" });
+    },
+    onError: () => {
+      toast({ title: "Parti silinemedi", variant: "destructive" });
+    },
   });
 
   const sortedBatches = batches?.slice().sort((a, b) => {
@@ -134,6 +160,43 @@ export default function BatchListPage() {
                             </div>
                           </div>
                         )}
+
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-muted-foreground hover:text-destructive"
+                              onClick={(e) => e.preventDefault()}
+                              data-testid={`button-delete-batch-${batch.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Partiyi Sil</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                {batch.manufacturer?.name} - Parti #{batch.batchNumber} silinecek. 
+                                Bu partideki {stats.productCount} analiz kaydı da silinecektir. 
+                                Bu işlem geri alınamaz.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>İptal</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  deleteMutation.mutate(batch.id);
+                                }}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                data-testid={`button-confirm-delete-batch-${batch.id}`}
+                              >
+                                Sil
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                         
                         <ChevronRight className="h-5 w-5 text-muted-foreground" />
                       </div>
