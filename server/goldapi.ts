@@ -25,43 +25,34 @@ export async function fetchGoldPrices(apiKey: string): Promise<ExchangeRateData>
     "Content-Type": "application/json",
   };
 
-  const [goldUsdResponse, goldTryResponse] = await Promise.all([
-    fetch(`${GOLDAPI_BASE_URL}/XAU/USD`, { headers }),
-    fetch(`${GOLDAPI_BASE_URL}/XAU/TRY`, { headers }),
-  ]);
+  // Fetch gold price in USD
+  const goldUsdResponse = await fetch(`${GOLDAPI_BASE_URL}/XAU/USD`, { headers });
 
-  if (!goldUsdResponse.ok || !goldTryResponse.ok) {
-    const usdError = await goldUsdResponse.text();
-    const tryError = await goldTryResponse.text();
-    console.error("GoldAPI USD response:", usdError);
-    console.error("GoldAPI TRY response:", tryError);
-    throw new Error(`Failed to fetch gold prices from GoldAPI: USD=${goldUsdResponse.status}, TRY=${goldTryResponse.status}`);
+  if (!goldUsdResponse.ok) {
+    const errorText = await goldUsdResponse.text();
+    console.error("GoldAPI USD response error:", errorText);
+    throw new Error(`Failed to fetch gold prices from GoldAPI: ${goldUsdResponse.status}`);
   }
 
   const goldUsd = await goldUsdResponse.json();
-  const goldTry = await goldTryResponse.json();
-  
   console.log("GoldAPI USD data:", JSON.stringify(goldUsd));
-  console.log("GoldAPI TRY data:", JSON.stringify(goldTry));
 
   // Check for API error responses
-  if (goldUsd.error || goldTry.error) {
-    throw new Error(`GoldAPI error: ${goldUsd.error || goldTry.error}`);
+  if (goldUsd.error) {
+    throw new Error(`GoldAPI error: ${goldUsd.error}`);
   }
 
-  const usdPrice = goldUsd.price || goldUsd.price_gram_24k;
-  const tryPrice = goldTry.price || goldTry.price_gram_24k;
+  // Use price_gram_24k directly if available, otherwise calculate from ounce price
+  const gold24kPerGramUsd = goldUsd.price_gram_24k || (goldUsd.price / TROY_OUNCE_TO_GRAMS);
   
-  if (!usdPrice || !tryPrice) {
+  if (!gold24kPerGramUsd) {
     throw new Error("Invalid price data received from GoldAPI");
   }
 
-  const usdTry = tryPrice / usdPrice;
-  // Gold price per gram in USD (more reliable for calculations)
-  const gold24kPerGramUsd = usdPrice / TROY_OUNCE_TO_GRAMS;
-
+  // Note: USD/TRY rate needs to be entered manually or fetched from another source
+  // For now, we'll return 0 for usdTry and let the user update it manually
   return {
-    usdTry: parseFloat(usdTry.toFixed(4)),
+    usdTry: 0, // User needs to update this manually
     gold24kPerGram: parseFloat(gold24kPerGramUsd.toFixed(2)),
     gold24kCurrency: "USD",
   };

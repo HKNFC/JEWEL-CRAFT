@@ -510,11 +510,16 @@ export async function registerRoutes(
     try {
       const apiKey = process.env.GOLDAPI_KEY;
       if (!apiKey) {
-        return res.status(400).json({ error: "GoldAPI key not configured" });
+        return res.status(400).json({ error: "GoldAPI anahtarı ayarlanmamış" });
       }
       const data = await fetchGoldPrices(apiKey);
+      
+      // Get current rate to preserve USD/TRY if API doesn't provide it
+      const currentRate = await storage.getLatestExchangeRate();
+      const usdTryValue = data.usdTry > 0 ? data.usdTry.toString() : (currentRate?.usdTry || "0");
+      
       const rate = await storage.createExchangeRate({
-        usdTry: data.usdTry.toString(),
+        usdTry: usdTryValue,
         gold24kPerGram: data.gold24kPerGram.toString(),
         gold24kCurrency: data.gold24kCurrency,
         isManual: false,
@@ -522,7 +527,7 @@ export async function registerRoutes(
       res.status(201).json(rate);
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: "Failed to fetch exchange rates from API" });
+      res.status(500).json({ error: "Kurlar alınamadı. API anahtarını kontrol edin." });
     }
   });
 
